@@ -5,11 +5,11 @@ android {
     buildToolsVersion "23.0.2"
 
     defaultConfig {
-        applicationId "kvj.taskw"
+        applicationId "soraxas.taskw"
         minSdkVersion 14
         targetSdkVersion 23
         versionCode 3
-        versionName "0.1.160410"
+        versionName "0.2.0"
     }
     lintOptions {
         checkReleaseBuilds false

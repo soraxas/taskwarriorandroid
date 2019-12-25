@@ -21,7 +21,7 @@
                     android:id="@+id/editor_editor"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    class="kvj.taskw.ui.Editor"/>
+                    class="soraxas.taskw.ui.Editor"/>
         </ScrollView>
         <ProgressBar
                 style="@style/Widget.AppCompat.ProgressBar.Horizontal"

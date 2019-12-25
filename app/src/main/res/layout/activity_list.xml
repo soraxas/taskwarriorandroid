@@ -53,7 +53,7 @@
                     android:id="@+id/list_list_fragment"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    class="kvj.taskw.ui.MainList"/>
+                    class="soraxas.taskw.ui.MainList"/>
                 <android.support.design.widget.FloatingActionButton
                     android:id="@+id/list_add_btn"
                     android:layout_width="wrap_content"
