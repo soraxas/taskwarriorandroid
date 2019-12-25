@@ -45,9 +45,6 @@ public class EditorActivity extends AppCompatActivity {
     private AccountController.TaskListener progressListener = null;
     private AccountController ac = null;
 
-    private AutoCompleteTextView autoCompProject;
-    private AutoCompleteTextView autoCompTag;
-
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,6 +79,7 @@ public class EditorActivity extends AppCompatActivity {
         }, null).oneShot(), App.KEY_EDIT_DATA_FIELDS);
         editor.initForm(form);
         form.load(this, savedInstanceState);
+        onSharedIntent();
         ac = controller.accountController(form);
         if (null == ac) {
             finish();
@@ -115,14 +113,14 @@ public class EditorActivity extends AppCompatActivity {
         }.exec();
 
         // populate project auto complete
-        autoCompProject = (AutoCompleteTextView) findViewById(R.id.editor_project);
+        AutoCompleteTextView autoCompProject = (AutoCompleteTextView) findViewById(R.id.editor_project);
         ArrayAdapter<String> adapter = new ArrayAdapter<>
                 (this, android.R.layout.select_dialog_item, ac.getProjects());
         autoCompProject.setThreshold(0); //will start working from first character
         autoCompProject.setAdapter(adapter);
 
         // populate tag auto complete
-        autoCompTag = (AutoCompleteTextView) findViewById(R.id.editor_tags);
+        AutoCompleteTextView autoCompTag = (AutoCompleteTextView) findViewById(R.id.editor_tags);
         AutoTagsSuggestAdapter single_word_adapter = new AutoTagsSuggestAdapter(this, android.R.layout.select_dialog_item, ac.getTags());
         autoCompTag.setThreshold(0); //will start working from first character
         autoCompTag.setAdapter(single_word_adapter);
@@ -288,6 +286,28 @@ public class EditorActivity extends AppCompatActivity {
                 }
             }
         }.exec();
+    }
+
+    private void onSharedIntent() {
+        Intent receivedIntent = getIntent();
+        String receivedAction = receivedIntent.getAction();
+        String receivedType = receivedIntent.getType();
+
+        if (receivedAction.equals(Intent.ACTION_SEND)) {
+
+            // check mime type
+            if (receivedType.startsWith("text/")) {
+
+                String receivedText = receivedIntent
+                        .getStringExtra(Intent.EXTRA_TEXT);
+                if (receivedText != null) {
+                    //do your stuff
+                    form.setValue(App.KEY_EDIT_DESCRIPTION, receivedText);
+                    form.setValue(App.KEY_ACCOUNT, controller.currentAccount());
+                }
+            }
+
+        }
     }
 
 }
