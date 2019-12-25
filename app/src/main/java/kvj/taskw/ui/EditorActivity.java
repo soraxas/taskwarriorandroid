@@ -8,6 +8,8 @@ import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.ProgressBar;
 
 import org.kvj.bravo7.form.BundleAdapter;
@@ -24,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 
 import kvj.taskw.App;
+import kvj.taskw.utils.AutoTagsSuggestAdapter;
 import kvj.taskw.R;
 import kvj.taskw.data.AccountController;
 import kvj.taskw.data.Controller;
@@ -41,6 +44,9 @@ public class EditorActivity extends AppCompatActivity {
     private List<String> priorities = null;
     private AccountController.TaskListener progressListener = null;
     private AccountController ac = null;
+
+    private AutoCompleteTextView autoCompProject;
+    private AutoCompleteTextView autoCompTag;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -107,6 +113,19 @@ public class EditorActivity extends AppCompatActivity {
                 }
             }
         }.exec();
+
+        // populate project auto complete
+        autoCompProject = (AutoCompleteTextView) findViewById(R.id.editor_project);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>
+                (this, android.R.layout.select_dialog_item, ac.getProjects());
+        autoCompProject.setThreshold(0); //will start working from first character
+        autoCompProject.setAdapter(adapter);
+
+        // populate tag auto complete
+        autoCompTag = (AutoCompleteTextView) findViewById(R.id.editor_tags);
+        AutoTagsSuggestAdapter single_word_adapter = new AutoTagsSuggestAdapter(this, android.R.layout.select_dialog_item, ac.getTags());
+        autoCompTag.setThreshold(0); //will start working from first character
+        autoCompTag.setAdapter(single_word_adapter);
     }
 
     @Override

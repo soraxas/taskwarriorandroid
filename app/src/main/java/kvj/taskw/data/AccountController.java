@@ -28,6 +28,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
@@ -140,7 +141,9 @@ public class AccountController {
 
     public interface TaskListener {
         public void onStart();
+
         public void onFinish();
+
         public void onQuestion(String question, DataUtil.Callback<Boolean> callback);
     }
 
@@ -280,7 +283,8 @@ public class AccountController {
         }
     }
 
-    public enum TimerType {Periodical("periodical"), AfterError("onerror"), AfterChange("onchange");
+    public enum TimerType {
+        Periodical("periodical"), AfterError("onerror"), AfterChange("onchange");
 
         private final String type;
 
@@ -289,7 +293,8 @@ public class AccountController {
         }
     }
 
-    public enum NotificationType {Sync("sync"), Success("success"), Error("error");
+    public enum NotificationType {
+        Sync("sync"), Success("success"), Error("error");
 
         private final String name;
 
@@ -437,7 +442,7 @@ public class AccountController {
     public Map<String, String> taskReports() {
         final List<String> onlyThose = new ArrayList<>(); // Save names of pre-configured reports here
         Map<String, String> settings = taskSettings(androidConf("reports"),
-                                                    androidConf("report.default"));
+                androidConf("report.default"));
         String list = settings.get(androidConf("reports"));
         String defaultReport = settings.get(androidConf("report.default"));
         if (TextUtils.isEmpty(defaultReport)) {
@@ -463,15 +468,15 @@ public class AccountController {
             }
         }, errConsumer, "reports");
         if (onlyThose.isEmpty() && !keys.isEmpty()) { // All reports - remove last
-            keys.remove(keys.size()-1);
-            values.remove(values.size()-1);
+            keys.remove(keys.size() - 1);
+            values.remove(values.size() - 1);
         }
         LinkedHashMap<String, String> result = new LinkedHashMap<>();
         if (keys.contains(defaultReport)) {
             // Move default to the top
             int index = keys.indexOf(defaultReport);
             keys.add(0, keys.get(index));
-            keys.remove(index+1);
+            keys.remove(index + 1);
             values.add(0, values.get(index));
             values.remove(index + 1);
         }
@@ -495,7 +500,7 @@ public class AccountController {
                 return result;
             }
             result.add(src.substring(start, index).trim());
-            start = index+sep.length();
+            start = index + sep.length();
         }
     }
 
@@ -512,7 +517,7 @@ public class AccountController {
                         String type = "";
                         if (p.contains(".")) {
                             name = p.substring(0, p.indexOf("."));
-                            type = p.substring(p.indexOf(".")+1);
+                            type = p.substring(p.indexOf(".") + 1);
                         }
                         info.fields.put(name, type);
                     }
@@ -520,14 +525,14 @@ public class AccountController {
                 if (key.endsWith(".sort")) {
                     String[] parts = value.split(",");
                     for (String p : parts) {
-                        if (p.endsWith("/")) p = p.substring(0, p.length()-1);
-                        info.sort.put(p.substring(0, p.length()-1), p.charAt(p.length()-1) == '+');
+                        if (p.endsWith("/")) p = p.substring(0, p.length() - 1);
+                        info.sort.put(p.substring(0, p.length() - 1), p.charAt(p.length() - 1) == '+');
                     }
                 }
                 if (key.endsWith(".filter")) {
                     String q = value;
                     if (!TextUtils.isEmpty(query)) { // Add query
-                        q += " "+query;
+                        q += " " + query;
                     }
                     info.query = q;
                 }
@@ -584,12 +589,12 @@ public class AccountController {
                         }
                         line.write(ch);
                         if (null != outputStream && line.size() > CONFIRM_YN.length()) {
-                            if (line.toString().substring(line.size()-CONFIRM_YN.length()).equals(
-                                CONFIRM_YN)) {
+                            if (line.toString().substring(line.size() - CONFIRM_YN.length()).equals(
+                                    CONFIRM_YN)) {
                                 // Ask for confirmation
                                 final String question = line.toString().substring(0, line.size()
-                                                                                     - CONFIRM_YN
-                                                                                         .length()).trim();
+                                        - CONFIRM_YN
+                                        .length()).trim();
                                 listeners().emit(new Listeners.ListenerEmitter<TaskListener>() {
                                     @Override
                                     public boolean emit(TaskListener listener) {
@@ -597,7 +602,7 @@ public class AccountController {
                                             @Override
                                             public boolean call(Boolean value) {
                                                 try {
-                                                    outputStream.write(String.format("%s\n", value? "yes": "no").getBytes("utf-8"));
+                                                    outputStream.write(String.format("%s\n", value ? "yes" : "no").getBytes("utf-8"));
                                                 } catch (IOException e) {
                                                     e.printStackTrace();
                                                 }
@@ -914,6 +919,60 @@ public class AccountController {
             }
         }, errConsumer, params.toArray(new String[0]));
         logger.d("List for:", query, result.size(), context);
+        return result;
+    }
+
+    public List<String> getProjects() {
+        final List<String> result = new ArrayList<>();
+        List<String> params = new ArrayList<>();
+        params.add("_projects");
+        callTask(new StreamConsumer() {
+            @Override
+            public void eat(String line) {
+                if (!TextUtils.isEmpty(line)) {
+                    try {
+                        result.add(line);
+                    } catch (Exception e) {
+                        logger.e(e, "Not String object:", line);
+                    }
+                }
+            }
+        }, errConsumer, params.toArray(new String[0]));
+        logger.d("Project list: ", result);
+        return result;
+    }
+
+    public List<String> getTags() {
+        return getTags(false);
+    }
+
+    public List<String> getTags(final boolean include_buildin_tags) {
+        final List<String> virtualTags = Arrays.asList("ACTIVE", "ANNOTATED", "BLOCKED", "BLOCKING",
+                "CHILD", "COMPLETED", "DELETED", "DUE", "DUETODAY", "MONTH", "ORPHAN", "OVERDUE",
+                "PARENT", "PENDING", "READY", "SCHEDULED", "TAGGED", "TODAY", "TOMORROW", "UDA",
+                "UNBLOCKED", "UNTIL", "WAITING", "WEEK", "YEAR", "YESTERDAY"
+        );
+        final List<String> specialTags = Arrays.asList("next", "nocal", "nocolor", "nonag");
+
+        final List<String> result = new ArrayList<>();
+        List<String> params = new ArrayList<>();
+        params.add("_tags");
+        callTask(new StreamConsumer() {
+            @Override
+            public void eat(String line) {
+                if (!TextUtils.isEmpty(line)) {
+                    try {
+                        if (include_buildin_tags || (!virtualTags.contains(line.toUpperCase()) &&
+                                !specialTags.contains(line.toLowerCase()))) {
+                            result.add(line);
+                        }
+                    } catch (Exception e) {
+                        logger.e(e, "Not String object:", line);
+                    }
+                }
+            }
+        }, errConsumer, params.toArray(new String[0]));
+        logger.d("Tag list: ", result);
         return result;
     }
 
