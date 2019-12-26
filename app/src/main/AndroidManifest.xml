@@ -1,91 +1,120 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="soraxas.taskw" >
-    <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS"/>
-    <uses-permission android:name="android.permission.GET_ACCOUNTS"/>
-    <uses-permission android:name="android.permission.MANAGE_ACCOUNTS"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    package="soraxas.taskw">
+
+    <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+    <uses-permission android:name="android.permission.MANAGE_ACCOUNTS" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
 
-
     <application
-            android:name="soraxas.taskw.App"
-            android:allowBackup="true"
-            android:icon="@mipmap/ic_tw_logo"
-            android:label="@string/app_name"
-            android:supportsRtl="true"
-            android:theme="@style/AppTheme" >
+        android:name=".App"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_tw_logo"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <service
+            android:name=".WidgetService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS">
+        </service>
+        <receiver android:name=".ui.TaskReportWidgetProvider">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/task_report_widget_info" />
+        </receiver>
+
+        <activity android:name=".ui.TaskReportWidgetConfigureActivity">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
         <activity
-            android:name="soraxas.taskw.ui.MainActivity"
+            android:name=".ui.MainActivity"
             android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
         <activity
-                android:name="soraxas.taskw.ui.TextEditor"
-                android:theme="@style/AppTheme"
-                android:exported="true"
-                android:windowSoftInputMode="adjustResize"
-                android:label="Textwarrior Text editor">
+            android:name=".ui.TextEditor"
+            android:exported="true"
+            android:label="Textwarrior Text editor"
+            android:theme="@style/AppTheme"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.EDIT" />
+
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/*"/>
+
+                <data android:mimeType="text/*" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
         <activity
-            android:name="soraxas.taskw.account.AccountAuthenticator$AccountAddDialog"
-            android:theme="@style/AppThemeDialog"
-            android:excludeFromRecents="true">
-
-        </activity>
+            android:name=".account.AccountAuthenticator$AccountAddDialog"
+            android:excludeFromRecents="true"
+            android:theme="@style/AppThemeDialog"></activity>
         <activity
-            android:name="soraxas.taskw.ui.AnnotationDialog"
-            android:theme="@style/AppThemeDialog">
-        </activity>
-        <activity android:name="soraxas.taskw.ui.EditorActivity"
+            android:name=".ui.AnnotationDialog"
+            android:theme="@style/AppThemeDialog"></activity>
+        <activity
+            android:name=".ui.EditorActivity"
             android:theme="@style/AppThemeD">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <intent-filter android:label="Add task">
                 <action android:name="android.intent.action.SEND" />
+
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:mimeType="text/*" />
             </intent-filter>
         </activity>
-        <activity android:name="soraxas.taskw.ui.RunActivity"
-                  android:theme="@style/AppThemeD">
-        </activity>
+        <activity
+            android:name=".ui.RunActivity"
+            android:theme="@style/AppThemeD"></activity>
+
         <service
-                android:name="soraxas.taskw.account.AccountAuthenticator$Service"
-                android:exported="true">
+            android:name=".account.AccountAuthenticator$Service"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.accounts.AccountAuthenticator" />
             </intent-filter>
-            <meta-data android:name="android.accounts.AccountAuthenticator"
-                       android:resource="@xml/authenticator" />
+
+            <meta-data
+                android:name="android.accounts.AccountAuthenticator"
+                android:resource="@xml/authenticator" />
         </service>
+
         <receiver
-                android:name="soraxas.taskw.data.SyncIntentReceiver"
-                android:enabled="true"
-                android:exported="true">
+            android:name=".data.SyncIntentReceiver"
+            android:enabled="true"
+            android:exported="true">
             <intent-filter>
-                <action android:name="taskw.SYNC"/>
+                <action android:name="taskw.SYNC" />
             </intent-filter>
         </receiver>
-        <receiver android:name="soraxas.taskw.data.BootReceiver" >
+        <receiver android:name=".data.BootReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>

@@ -3,4 +3,7 @@
     <string name="app_account_type">kvj.task.account</string>
     <string name="pref_account_name">pref_account_name</string>
     <string name="pref_account_id">pref_account_id</string>
+    <string name="appwidget_text">EXAMPLE</string>
+    <string name="configure">Configure</string>
+    <string name="add_widget">Add widget</string>
 </resources>
