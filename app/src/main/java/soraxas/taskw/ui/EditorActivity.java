@@ -293,7 +293,7 @@ public class EditorActivity extends AppCompatActivity {
         String receivedAction = receivedIntent.getAction();
         String receivedType = receivedIntent.getType();
 
-        if (receivedAction.equals(Intent.ACTION_SEND)) {
+        if (receivedAction != null && receivedAction.equals(Intent.ACTION_SEND)) {
 
             // check mime type
             if (receivedType.startsWith("text/")) {
