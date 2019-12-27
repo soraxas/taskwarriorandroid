@@ -2,19 +2,29 @@ package soraxas.taskw.ui;
 
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
-import android.os.Binder;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.List;
+
+import soraxas.taskw.App;
 import soraxas.taskw.R;
+import soraxas.taskw.data.AccountController;
+import soraxas.taskw.data.Controller;
+import soraxas.taskw.data.ReportInfo;
 
 
 public class WidgetDataProvider implements RemoteViewsService.RemoteViewsFactory {
 
     private Context context;
-    private Cursor cursor;
     private Intent intent;
+    private AccountController ac;
+    private ReportInfo info;
+    List<JSONObject> tasklist;
+
 
     //For obtaining the activity's context and intent
     public WidgetDataProvider(Context context, Intent intent) {
@@ -22,66 +32,59 @@ public class WidgetDataProvider implements RemoteViewsService.RemoteViewsFactory
         this.intent = intent;
     }
 
-    private void initCursor() {
-        if (cursor != null) {
-            cursor.close();
-        }
-        final long identityToken = Binder.clearCallingIdentity();
-        /**This is done because the widget runs as a separate thread
-         when compared to the current app and hence the app's data won't be accessible to it
-         because I'm using a content provided **/
-//        cursor = context.getContentResolver().query(QuoteProvider.Quotes.CONTENT_URI,
-//                new String[]{QuoteColumns._ID, QuoteColumns.SYMBOL, QuoteColumns.BIDPRICE,
-//                        QuoteColumns.PERCENT_CHANGE, QuoteColumns.CHANGE, QuoteColumns.ISUP},
-//                QuoteColumns.ISCURRENT + " = ?",
-//                new String[]{"1"}, null);
-        Binder.restoreCallingIdentity(identityToken);
+    private void initController() {
+
+        Controller controller = App.controller();
+        ac = controller.accountController(controller.currentAccount(), true);
+        info = ac.taskReportInfo("next", "");
+
+        tasklist = ac.taskList(info.query);
+        info.sort(tasklist); // Sorted according to report spec.
+
+//        final long identityToken = Binder.clearCallingIdentity();
+//        /**This is done because the widget runs as a separate thread
+//         when compared to the current app and hence the app's data won't be accessible to it
+//         because I'm using a content provided **/
+//
+//        Binder.restoreCallingIdentity(identityToken);
     }
 
     @Override
     public void onCreate() {
-        initCursor();
-        if (cursor != null) {
-            cursor.moveToFirst();
-        }
+        initController();
     }
 
     @Override
     public void onDataSetChanged() {
         /** Listen for data changes and initialize the cursor again **/
-        initCursor();
+        initController();
     }
 
     @Override
     public void onDestroy() {
-//        cursor.close();
     }
 
     @Override
     public int getCount() {
-        return 5;
-//        return cursor.getCount();
+        return tasklist.size();
     }
 
     @Override
     public RemoteViews getViewAt(int i) {
         /** Populate your widget's single list item **/
+        JSONObject obj = tasklist.get(i);
+
         RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.widget_task_report_item);
 
-        remoteViews.setTextViewText(R.id.stock_symbol, "sym " + i);
-        remoteViews.setTextViewText(R.id.bid_price, "bidprice " + i);
-        remoteViews.setTextViewText(R.id.change, "change " + i);
+        try {
+            remoteViews.setTextViewText(R.id.widget_item_desc, (String) obj.get("description"));
+//            remoteViews.setTextViewText(R.id.bid_price, (String) obj.get("status"));
+//            remoteViews.setTextViewText(R.id.change, "abc");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
 
 
-//        cursor.moveToPosition(i);
-//        remoteViews.setTextViewText(R.id.stock_symbol, cursor.getString(cursor.getColumnIndex(QuoteColumns.SYMBOL)));
-//        remoteViews.setTextViewText(R.id.bid_price, cursor.getString(cursor.getColumnIndex(QuoteColumns.BIDPRICE)));
-//        remoteViews.setTextViewText(R.id.change, cursor.getString(cursor.getColumnIndex(QuoteColumns.CHANGE)));
-//        if (cursor.getString(cursor.getColumnIndex(QuoteColumns.ISUP)).equals("1")) {
-//            remoteViews.setInt(R.id.change, "setBackgroundResource", R.drawable.percent_change_pill_green);
-//        } else {
-//            remoteViews.setInt(R.id.change, "setBackgroundResource", R.drawable.percent_change_pill_red);
-//        }
         return remoteViews;
     }
 

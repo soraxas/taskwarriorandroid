@@ -2,6 +2,8 @@ package soraxas.taskw.ui;
 
 import android.accounts.Account;
 import android.app.Activity;
+import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -247,6 +249,18 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
             // Have something in query
             filterPanel.setVisibility(View.VISIBLE);
         }
+
+
+
+        // update widget
+        Intent intent = new Intent(this, TaskReportWidgetProvider.class);
+        intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+        // Use an array and EXTRA_APPWIDGET_IDS instead of AppWidgetManager.EXTRA_APPWIDGET_ID,
+        // since it seems the onUpdate() is only fired on that:
+        int[] ids = AppWidgetManager.getInstance(getApplication())
+                .getAppWidgetIds(new ComponentName(getApplication(), TaskReportWidgetProvider.class));
+        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
+        sendBroadcast(intent);
     }
 
     private void reload() {
