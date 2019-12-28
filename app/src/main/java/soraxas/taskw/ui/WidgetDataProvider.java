@@ -8,7 +8,12 @@ import android.widget.RemoteViewsService;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 import soraxas.taskw.App;
 import soraxas.taskw.R;
@@ -74,16 +79,72 @@ public class WidgetDataProvider implements RemoteViewsService.RemoteViewsFactory
         /** Populate your widget's single list item **/
         JSONObject obj = tasklist.get(i);
 
-        RemoteViews remoteViews = new RemoteViews(context.getPackageName(), R.layout.widget_task_report_item);
+        String due = null;
+
+        try {
+            due = (String) obj.get("due");
+        } catch (JSONException e) {
+        }
+        RemoteViews remoteViews;
+
+        remoteViews = new RemoteViews(context.getPackageName(), R.layout.widget_task_report_item);
+        remoteViews.removeAllViews(R.id.widget_item_container);
+
+        RemoteViews task_desc = new RemoteViews(context.getPackageName(), R.layout.item_simple_textview);
+        remoteViews.addView(R.id.widget_item_container, task_desc);
+
+        // if the item has due date, add date label
+        if (due != null) {
+            // dynamically add the date label
+            RemoteViews date_label = new RemoteViews(context.getPackageName(), R.layout.item_one_label_left);
+            remoteViews.addView(R.id.widget_item_container, date_label);
+
+
+            // This is the datetime format taskwarrior returns
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'");
+            dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+
+            // parse due date and compare to current date
+            try {
+                String date_to_display = "";
+                Date duedate = dateFormat.parse(due);
+                Date currentTime = Calendar.getInstance().getTime();
+
+                // if the delta date is within 7 days, displace the differences instead.
+                long different = duedate.getTime() - currentTime.getTime();
+                long elapsedDays = different / (1000 * 60 * 60 * 24);
+
+                if (elapsedDays < 7) {
+                    if (elapsedDays > 1){
+                        date_to_display = String.format("in %d days", elapsedDays);
+                    } else{
+                        date_to_display = String.format("in %d day", elapsedDays);
+                    }
+
+                } else {
+                    String datetime_pattern;
+                    // if the due date year is not same as current year, include the year in formatting as well
+                    if (duedate.getYear() == currentTime.getYear()) {
+                        datetime_pattern = "dd MMM";
+                    } else {
+                        datetime_pattern = "dd MMM YYYY";
+                    }
+                    date_to_display = new SimpleDateFormat(datetime_pattern).format(duedate);
+                }
+
+                remoteViews.setTextViewText(R.id.label_text, date_to_display);
+
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+
+        }
 
         try {
             remoteViews.setTextViewText(R.id.widget_item_desc, (String) obj.get("description"));
-//            remoteViews.setTextViewText(R.id.bid_price, (String) obj.get("status"));
-//            remoteViews.setTextViewText(R.id.change, "abc");
         } catch (JSONException e) {
             e.printStackTrace();
         }
-
 
         return remoteViews;
     }

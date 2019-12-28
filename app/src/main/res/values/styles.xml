@@ -69,5 +69,7 @@
         <item name="android:longClickable">true</item>
         <item name="android:hapticFeedbackEnabled">true</item>
     </style>
-
+    <style name="AppTheme.WhiteAccent">
+        <item name="colorAccent">@color/White</item> <!-- Whatever color you want-->
+    </style>
 </resources>

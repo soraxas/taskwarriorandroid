@@ -1,5 +1,6 @@
 package soraxas.taskw.ui;
 
+import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;

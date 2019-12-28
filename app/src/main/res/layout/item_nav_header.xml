@@ -16,7 +16,6 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
-        app:layout_constraintBottom_toBottomOf="parent"
         android:orientation="horizontal">
 
         <ImageView
