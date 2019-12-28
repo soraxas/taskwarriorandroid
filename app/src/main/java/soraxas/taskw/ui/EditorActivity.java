@@ -82,9 +82,13 @@ public class EditorActivity extends AppCompatActivity {
         onSharedIntent();
         ac = controller.accountController(form);
         if (null == ac) {
-            finish();
-            controller.messageShort("Invalid arguments");
-            return;
+            // try to load from default account first
+            ac = controller.accountController(controller.currentAccount());
+            if (null == ac) {
+                finish();
+                controller.messageShort("Invalid arguments");
+                return;
+            }
         }
         toolbar.setSubtitle(ac.name());
         progressListener = MainActivity.setupProgressListener(this, progressBar);
