@@ -3,7 +3,7 @@ package soraxas.taskw.ui;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
+
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,6 +13,8 @@ import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TimePicker;
+
+import androidx.fragment.app.Fragment;
 
 import org.kvj.bravo7.form.FormController;
 import org.kvj.bravo7.form.impl.widget.ImageViewIntegerAdapter;

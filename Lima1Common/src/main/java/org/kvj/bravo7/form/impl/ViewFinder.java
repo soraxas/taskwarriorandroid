@@ -1,8 +1,10 @@
 package org.kvj.bravo7.form.impl;
 
 import android.app.Activity;
-import android.support.v4.app.Fragment;
+
 import android.view.View;
+
+import androidx.fragment.app.Fragment;
 
 /**
  * Created by kvorobyev on 11/21/15.

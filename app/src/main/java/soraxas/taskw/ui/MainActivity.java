@@ -6,14 +6,10 @@ import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.NavigationView;
-import android.support.v4.util.Pair;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
+import android.os.StrictMode;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.Menu;
@@ -25,6 +21,18 @@ import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.FileProvider;
+import androidx.core.util.Pair;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.navigation.NavigationView;
+
 import org.json.JSONObject;
 import org.kvj.bravo7.form.FormController;
 import org.kvj.bravo7.form.impl.ViewFinder;
@@ -35,10 +43,13 @@ import org.kvj.bravo7.log.Logger;
 import org.kvj.bravo7.util.DataUtil;
 import org.kvj.bravo7.util.Tasks;
 
+import java.io.File;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Map;
 
 import soraxas.taskw.App;
+import soraxas.taskw.BuildConfig;
 import soraxas.taskw.R;
 import soraxas.taskw.data.AccountController;
 import soraxas.taskw.data.Controller;
@@ -91,18 +102,18 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
         super.onCreate(savedInstanceState);
         controller.toastListeners().add(this);
         setContentView(R.layout.activity_list);
-        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar = findViewById(R.id.toolbar);
         navigationDrawer = (DrawerLayout) findViewById(R.id.list_navigation_drawer);
         navigation = (NavigationView) findViewById(R.id.list_navigation);
         header = (ViewGroup) navigation.inflateHeaderView(R.layout.item_nav_header);
         navigation.setNavigationItemSelectedListener(
-            new NavigationView.OnNavigationItemSelectedListener() {
-                @Override
-                public boolean onNavigationItemSelected(MenuItem item) {
-                    onNavigationMenu(item);
-                    return true;
-                }
-            });
+                new NavigationView.OnNavigationItemSelectedListener() {
+                    @Override
+                    public boolean onNavigationItemSelected(MenuItem item) {
+                        onNavigationMenu(item);
+                        return true;
+                    }
+                });
         list = (MainList) getSupportFragmentManager().findFragmentById(R.id.list_list_fragment);
         addButton = (FloatingActionButton) findViewById(R.id.list_add_btn);
         progressBar = (ProgressBar) findViewById(R.id.progress);
@@ -207,7 +218,7 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
                 }
                 if ("recur".equals(type)) {
                     add(Pair.create(App.KEY_EDIT_UNTIL,
-                                    MainListAdapter.asDate(json.optString("until"), "", null)),
+                            MainListAdapter.asDate(json.optString("until"), "", null)),
                             Pair.create(App.KEY_EDIT_RECUR, json.optString("recur")));
                 }
             }
@@ -251,6 +262,19 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
         }
 
 
+        // pull-to-refresh swipeToRefresh
+        final SwipeRefreshLayout swipeContainer = (SwipeRefreshLayout) findViewById(R.id.swipeToRefresh);
+        // Setup refresh listener which triggers new data loading
+        swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                // Your code to refresh the list here.
+                // Make sure you call swipeContainer.setRefreshing(false)
+                // once the network request has completed successfully.
+                sync();
+                swipeContainer.setRefreshing(false);
+            }
+        });
 
         // update widget
         Intent intent = new Intent(this, TaskReportWidgetProvider.class);
@@ -283,7 +307,7 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
         int index = 0;
         for (Account account : controller.accounts()) {
             menu.getMenu().add(R.id.menu_account_list, index++, 0, account.name)
-                .setOnMenuItemClickListener(newAccountMenu(controller.accountID(account)));
+                    .setOnMenuItemClickListener(newAccountMenu(controller.accountID(account)));
         }
         menu.setOnMenuItemClickListener(accountMenuListener);
         menu.show();
@@ -325,10 +349,24 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
                 }
                 break;
             case R.id.menu_nav_settings:
+                // hacky way to disable the runtime check of URI expose
+                // https://stackoverflow.com/questions/38200282/android-os-fileuriexposedexception-file-storage-emulated-0-test-txt-exposed/38858040
+                if (Build.VERSION.SDK_INT >= 24) {
+                    try {
+                        Method m = StrictMode.class.getMethod("disableDeathOnFileUriExposure");
+                        m.invoke(null);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
                 // Open taskrc for editing
                 Intent intent = new Intent(Intent.ACTION_EDIT);
+//                Uri uri = FileProvider.getUriForFile(MainActivity.this,
+//                        BuildConfig.APPLICATION_ID + ".provider",
+//                        new File(ac.taskrc().getAbsolutePath()));
                 Uri uri = Uri.parse(String.format("file://%s", ac.taskrc().getAbsolutePath()));
                 intent.setDataAndType(uri, "text/plain");
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 try {
                     startActivityForResult(intent, App.SETTINGS_REQUEST);
                 } catch (Exception e) {
@@ -473,7 +511,7 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
         };
     }
 
-    private void add(Pair<String, String> ...pairs) {
+    private void add(Pair<String, String>... pairs) {
         if (null == ac) return;
         Intent intent = new Intent(this, EditorActivity.class);
         ac.intentForEditor(intent, null);
@@ -555,7 +593,7 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
     }
 
     private void refreshReports() {
-        new Tasks.ActivitySimpleTask<Map<String, String>>(this){
+        new Tasks.ActivitySimpleTask<Map<String, String>>(this) {
 
             @Override
             protected Map<String, String> doInBackground() {
@@ -582,17 +620,17 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
 
             private void addReportMenuItem(final String key, String title, SubMenu menu) {
                 menu.add(title).setIcon(R.drawable.ic_action_report).setOnMenuItemClickListener(
-                    new MenuItem.OnMenuItemClickListener() {
-                        @Override
-                        public boolean onMenuItemClick(MenuItem item) {
-                            // Show report
-                            form.setValue(App.KEY_REPORT, key);
-                            form.setValue(App.KEY_QUERY, null);
-                            list.load(form, updateTitleAction);
-                            reload();
-                            return false;
-                        }
-                    });
+                        new MenuItem.OnMenuItemClickListener() {
+                            @Override
+                            public boolean onMenuItemClick(MenuItem item) {
+                                // Show report
+                                form.setValue(App.KEY_REPORT, key);
+                                form.setValue(App.KEY_QUERY, null);
+                                list.load(form, updateTitleAction);
+                                reload();
+                                return false;
+                            }
+                        });
             }
         }.exec();
     }
@@ -625,7 +663,7 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
         String query = bundle.getString(App.KEY_QUERY, "");
         String name = bundle.getString(App.KEY_REPORT, "");
         if (!TextUtils.isEmpty(query)) { // Have add. query
-            name += " "+query;
+            name += " " + query;
         }
         final Intent shortcutIntent = new Intent(this, MainActivity.class);
         shortcutIntent.putExtras(bundle);
@@ -647,7 +685,7 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
 
     private void undo() {
         if (null == ac) return;
-        new Tasks.ActivitySimpleTask<String>(this){
+        new Tasks.ActivitySimpleTask<String>(this) {
 
             @Override
             protected String doInBackground() {
@@ -666,8 +704,11 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
     }
 
     private void sync() {
-        if (null == ac) return;
-        new Tasks.ActivitySimpleTask<String>(this){
+        if (null == ac) {
+            controller.messageShort("Unable to sync");
+            return;
+        }
+        new Tasks.ActivitySimpleTask<String>(this) {
 
             @Override
             protected String doInBackground() {

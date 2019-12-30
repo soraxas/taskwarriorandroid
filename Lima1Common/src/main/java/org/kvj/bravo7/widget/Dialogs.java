@@ -2,9 +2,11 @@ package org.kvj.bravo7.widget;
 
 import android.content.Context;
 import android.content.DialogInterface;
-import android.support.v7.app.AlertDialog;
+
 import android.widget.EditText;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
 
 /**
  * Created by kvorobyev on 5/15/15.

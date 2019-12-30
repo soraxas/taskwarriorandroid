@@ -12,8 +12,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
+
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+
 import android.text.TextUtils;
 
 import org.kvj.bravo7.form.FormController;
@@ -22,6 +24,7 @@ import org.kvj.bravo7.util.Listeners;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -68,35 +71,11 @@ public class Controller extends org.kvj.bravo7.ng.Controller {
         notificationManager = NotificationManagerCompat.from(context);
     }
 
-    public File fileFromIntentUri(Intent intent) {
-        if (null == intent) return null;
-        if (TextUtils.isEmpty(intent.getDataString())) return null;
-        if (!"file".equals(intent.getData().getScheme())) {
-            logger.w("Requested Uri is not file", intent.getData().getScheme(), intent.getData());
-            return null;
-        }
-        try {
-            File file = new File(intent.getData().getPath());
-            if (!file.isFile() && !file.exists()) {
-                logger.w("Invalid file:", file);
-                return null;
-            }
-            if (!file.canRead() || !file.canWrite()) {
-                logger.w("Invalid file access:", file, file.canRead(), file.canWrite());
-                return null;
-            }
-            return file;
-        } catch (Exception e) {
-            logger.e(e, "Error getting file:", intent.getData(), intent.getData().getPath());
-        }
-        return null;
-    }
-
-    public String readFile(File file) {
+    public String readFile(InputStream stream) {
         StringBuilder result = new StringBuilder();
         try {
             String line;
-            BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file), "utf-8"));
+            BufferedReader br = new BufferedReader(new InputStreamReader(stream, "utf-8"));
             while ((line = br.readLine()) != null) {
                 result.append(line);
                 result.append('\n');
@@ -104,10 +83,19 @@ public class Controller extends org.kvj.bravo7.ng.Controller {
             br.close();
             return result.toString();
         } catch (Exception e) {
-            logger.e(e, "Error reading file", file.getAbsolutePath());
             return null;
         }
     }
+
+    public String readFile(File file) {
+        try {
+            return readFile(new FileInputStream(file));
+        } catch (FileNotFoundException e) {
+            logger.e(e, "Error reading file", file.getAbsolutePath());
+        }
+        return null;
+    }
+
 
     public Boolean saveFile(String fileName, String text) {
         try {
@@ -141,7 +129,7 @@ public class Controller extends org.kvj.bravo7.ng.Controller {
         addIntent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, shortcutIntent);
         addIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, value);
         addIntent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE,
-                           Intent.ShortcutIconResource.fromContext(context(), R.mipmap.ic_tw_logo));
+                Intent.ShortcutIconResource.fromContext(context(), R.mipmap.ic_tw_logo));
         addIntent.setAction("com.android.launcher.action.INSTALL_SHORTCUT");
         try {
             context().sendBroadcast(addIntent);
@@ -153,7 +141,9 @@ public class Controller extends org.kvj.bravo7.ng.Controller {
         return false;
     }
 
-    private enum Arch {Arm7, X86};
+    private enum Arch {Arm7, X86}
+
+    ;
 
     private String eabiExecutable() {
         Arch arch = Arch.Arm7;
@@ -164,10 +154,10 @@ public class Controller extends org.kvj.bravo7.ng.Controller {
         int rawID = -1;
         switch (arch) {
             case Arm7:
-                rawID = Build.VERSION.SDK_INT >= 16? R.raw.task_arm7_16: R.raw.task_arm7;
+                rawID = Build.VERSION.SDK_INT >= 16 ? R.raw.task_arm7_16 : R.raw.task_arm7;
                 break;
             case X86:
-                rawID = Build.VERSION.SDK_INT >= 16? R.raw.task_x86_16: R.raw.task_x86;
+                rawID = Build.VERSION.SDK_INT >= 16 ? R.raw.task_x86_16 : R.raw.task_x86;
                 break;
         }
         try {
@@ -239,12 +229,12 @@ public class Controller extends org.kvj.bravo7.ng.Controller {
     public void addAccount(Activity activity) {
         logger.d("Will add new account");
         accountManager.addAccount(App.ACCOUNT_TYPE, null, null, null, activity,
-          new AccountManagerCallback<Bundle>() {
-              @Override
-              public void run(AccountManagerFuture<Bundle> future) {
-                  logger.d("Add done");
-              }
-          }, null);
+                new AccountManagerCallback<Bundle>() {
+                    @Override
+                    public void run(AccountManagerFuture<Bundle> future) {
+                        logger.d("Add done");
+                    }
+                }, null);
     }
 
     public String accountID(Account acc) {

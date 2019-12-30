@@ -12,7 +12,7 @@
                 android:layout_gravity="center_vertical"
                 style="@style/IconButton"
                 android:layout_weight="0"/>
-        <android.support.design.widget.TextInputLayout
+        <com.google.android.material.textfield.TextInputLayout
                 android:layout_weight="1"
                 android:layout_width="0dp"
                 android:layout_gravity="bottom"
@@ -23,7 +23,7 @@
                 android:layout_width="match_parent"
                 android:singleLine="true"
                 android:layout_height="wrap_content"/>
-        </android.support.design.widget.TextInputLayout>
+        </com.google.android.material.textfield.TextInputLayout>
         <Spinner
                 style="@style/Base.Widget.AppCompat.Spinner.Underlined"
                 android:id="@+id/editor_priority"
@@ -37,7 +37,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
-        <android.support.design.widget.TextInputLayout
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_weight="1"
             android:layout_width="0dp"
             android:layout_height="wrap_content">
@@ -49,8 +49,8 @@
                 android:hint="Project"
                 android:singleLine="true"
             />
-        </android.support.design.widget.TextInputLayout>
-        <android.support.design.widget.TextInputLayout
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_weight="1"
             android:layout_width="0dp"
             android:layout_height="wrap_content">
@@ -62,13 +62,13 @@
                 android:hint="Tags"
                 android:singleLine="true"
             />
-        </android.support.design.widget.TextInputLayout>
+        </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
-        <android.support.design.widget.TextInputLayout
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_weight="1"
             android:layout_width="0dp"
             android:layout_height="wrap_content">
@@ -78,12 +78,12 @@
                 android:layout_width="match_parent"
                 android:singleLine="true"
                 android:layout_height="wrap_content"/>
-        </android.support.design.widget.TextInputLayout>
+        </com.google.android.material.textfield.TextInputLayout>
         <android.widget.ImageButton
             android:id="@+id/editor_due_btn"
             style="@style/IconButton"
             android:src="@drawable/ic_action_date"/>
-        <android.support.design.widget.TextInputLayout
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_weight="1"
             android:layout_width="0dp"
             android:layout_height="wrap_content">
@@ -93,7 +93,7 @@
                 android:layout_width="match_parent"
                 android:singleLine="true"
                 android:layout_height="wrap_content"/>
-        </android.support.design.widget.TextInputLayout>
+        </com.google.android.material.textfield.TextInputLayout>
         <android.widget.ImageButton
             android:id="@+id/editor_wait_btn"
             style="@style/IconButton"
@@ -103,7 +103,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
-        <android.support.design.widget.TextInputLayout
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_weight="1"
             android:layout_width="0dp"
             android:layout_height="wrap_content">
@@ -113,7 +113,7 @@
                 android:layout_width="match_parent"
                 android:singleLine="true"
                 android:layout_height="wrap_content"/>
-        </android.support.design.widget.TextInputLayout>
+        </com.google.android.material.textfield.TextInputLayout>
         <android.widget.ImageButton
             android:id="@+id/editor_scheduled_btn"
             style="@style/IconButton"
@@ -123,7 +123,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
-        <android.support.design.widget.TextInputLayout
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_weight="1"
             android:layout_width="0dp"
             android:layout_height="wrap_content">
@@ -133,8 +133,8 @@
                 android:layout_width="match_parent"
                 android:singleLine="true"
                 android:layout_height="wrap_content"/>
-        </android.support.design.widget.TextInputLayout>
-        <android.support.design.widget.TextInputLayout
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_weight="1"
             android:layout_width="0dp"
             android:layout_height="wrap_content">
@@ -144,7 +144,7 @@
                 android:layout_width="match_parent"
                 android:singleLine="true"
                 android:layout_height="wrap_content"/>
-        </android.support.design.widget.TextInputLayout>
+        </com.google.android.material.textfield.TextInputLayout>
         <android.widget.ImageButton
             android:id="@+id/editor_until_btn"
             style="@style/IconButton"

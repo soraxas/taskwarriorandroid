@@ -7,7 +7,7 @@ import android.util.Log;
 import android.view.View;
 
 
-public class InstantAutoComplete extends android.support.v7.widget.AppCompatAutoCompleteTextView {
+public class InstantAutoComplete extends androidx.appcompat.widget.AppCompatAutoCompleteTextView {
     public InstantAutoComplete(Context context) {
         super(context);
     }

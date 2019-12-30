@@ -1,9 +1,14 @@
 package soraxas.taskw.ui;
 
 import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -16,6 +21,7 @@ import org.kvj.bravo7.log.Logger;
 import org.kvj.bravo7.util.Tasks;
 
 import java.io.File;
+import java.io.InputStream;
 
 import soraxas.taskw.App;
 import soraxas.taskw.R;
@@ -55,28 +61,41 @@ public class TextEditor extends AppCompatActivity {
 
     private void loadText(Intent intent) {
         // Load
-        final File file = controller.fileFromIntentUri(intent);
+        InputStream file = null;
+        final Uri _uri = intent.getData();
+        if (null != intent && !TextUtils.isEmpty(intent.getDataString())) {
+            String filePath = null;
+
+            try {
+                if ("content".equals(_uri.getScheme()) || "file".equals(_uri.getScheme())) {
+                    file = getContentResolver().openInputStream(_uri);
+                }
+            } catch (Exception e) {
+                logger.e(e, "Error getting file:", intent.getData(), intent.getData().getPath());
+            }
+        }
         if (null == file) {
             // Invalid file
             controller.messageLong("Invalid file provided");
             finish();
             return;
         }
+        final InputStream finalFile = file;
         new Tasks.ActivitySimpleTask<String>(this) {
 
             @Override
             protected String doInBackground() {
-                return controller.readFile(file);
+                return controller.readFile(finalFile);
             }
 
             @Override
             public void finish(String result) {
-                logger.d("File loaded:", file.getAbsolutePath(), result != null);
+                logger.d("File loaded:", _uri, result != null);
                 if (null == result) {
                     controller.messageLong("File IO error");
                     TextEditor.this.finish();
                 } else {
-                    form.setValue(App.KEY_TEXT_TARGET, file.getAbsolutePath(), true);
+                    form.setValue(App.KEY_TEXT_TARGET, _uri.toString(), true);
                     form.setValue(App.KEY_TEXT_INPUT, result.trim(), true);
                     updateToolbar();
                 }
