@@ -1,6 +1,7 @@
 package soraxas.taskw.ui;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -9,6 +10,7 @@ import android.view.ViewGroup;
 import android.widget.RemoteViews;
 
 import androidx.cardview.widget.CardView;
+import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.json.JSONArray;
@@ -18,7 +20,6 @@ import org.kvj.bravo7.log.Logger;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -26,7 +27,9 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import soraxas.taskw.R;
+import soraxas.taskw.data.AccountController;
 import soraxas.taskw.data.ReportInfo;
+import soraxas.taskw.utils.DateConverter;
 
 /**
  * Created by vorobyev on 11/19/15.
@@ -316,6 +319,7 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
         views.setViewVisibility(R.id.task_annotations, View.GONE);
         views.setViewVisibility(R.id.task_annotations_flag, View.GONE);
         views.setViewVisibility(R.id.task_start_stop_btn, View.GONE);
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
         for (Map.Entry<String, String> field : info.fields.entrySet()) {
             if (field.getKey().equalsIgnoreCase("description")) {
                 // Show title
@@ -329,7 +333,7 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
                             JSONObject ann = annotations.optJSONObject(i);
                             RemoteViews annView = new RemoteViews(context.getPackageName(), R.layout.item_one_annotation);
                             annView.setTextViewText(R.id.task_ann_text, ann.optString("description", "Untitled"));
-                            annView.setTextViewText(R.id.task_ann_date, asDate(ann.optString("entry"), "", formattedFormatDT));
+                            annView.setTextViewText(R.id.task_ann_date, asDate(ann.optString("entry"), sharedPref));
                             views.addView(R.id.task_annotations, annView);
                         }
                     }
@@ -352,20 +356,20 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
             }
             if (field.getKey().equalsIgnoreCase("due")) {
                 addLabel(context, result, "due", true, R.drawable.ic_label_due,
-                        asDate(json.optString("due"), field.getValue(), null));
+                        asDate(json.optString("due"), sharedPref));
             }
             if (field.getKey().equalsIgnoreCase("wait")) {
                 addLabel(context, result, "wait", true, R.drawable.ic_label_wait,
-                        asDate(json.optString("wait"), field.getValue(), null));
+                        asDate(json.optString("wait"), sharedPref));
             }
             if (field.getKey().equalsIgnoreCase("scheduled")) {
                 addLabel(context, result, "scheduled", true, R.drawable.ic_label_scheduled,
-                        asDate(json.optString("scheduled"), field.getValue(), null));
+                        asDate(json.optString("scheduled"), sharedPref));
             }
             if (field.getKey().equalsIgnoreCase("recur")) {
                 String recur = json.optString("recur");
                 if (!TextUtils.isEmpty(recur) && info.fields.containsKey("until")) {
-                    String until = asDate(json.optString("until"), info.fields.get("until"), null);
+                    String until = asDate(json.optString("until"), sharedPref);
                     if (!TextUtils.isEmpty(until)) {
                         recur += String.format(" ~ %s", until);
                     }
@@ -381,7 +385,7 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
                         json.optJSONArray("tags"))));
             }
             if (field.getKey().equalsIgnoreCase("start")) {
-                String started = asDate(json.optString("start"), field.getValue(), formattedFormatDT);
+                String started = asDate(json.optString("start"), sharedPref);
                 boolean isStarted = !TextUtils.isEmpty(started);
                 if (pending) { // Can be started/stopped
                     views.setViewVisibility(R.id.task_start_stop_btn, View.VISIBLE);
@@ -424,28 +428,6 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
     public static DateFormat formattedFormatDT = new SimpleDateFormat("yyyy-MM-dd HH:mm");
     public static DateFormat formattedISO = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
 
-    public static String asDate(String due, String value, DateFormat format) {
-        DateFormat jsonFormat = new SimpleDateFormat("yyyyMMdd'T'HHmmss");
-        jsonFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-        if (TextUtils.isEmpty(due)) { // No value
-            return null;
-        }
-        try {
-            Date parsed = jsonFormat.parse(due);
-            if (null == format) { // Flexible -> date or date/time
-                Calendar c = Calendar.getInstance();
-                c.setTime(parsed);
-                if (c.get(Calendar.HOUR_OF_DAY) == 0 && c.get(Calendar.MINUTE) == 0) { // 00:00
-                    return formattedFormat.format(parsed); // Date
-                }
-                return formattedISO.format(parsed);
-            }
-            return format.format(parsed);
-        } catch (Exception e) {
-            logger.e(e, "Failed to parse Date:", due);
-        }
-        return null;
-    }
 
     private static int status2icon(String status) {
         if ("deleted".equalsIgnoreCase(status)) return R.drawable.ic_status_deleted;
@@ -470,5 +452,41 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
 
     public void listener(ItemListener listener) {
         this.listener = listener;
+    }
+
+    public static String asDate(String due, boolean forceIgnoreMidnightTime, SharedPreferences sharedPref) {
+        return asDate(due, null, forceIgnoreMidnightTime, sharedPref);
+    }
+
+    public static String asDate(String due, SharedPreferences sharedPref) {
+        return asDate(due, null, false, sharedPref);
+    }
+
+    public static String asDate(String due, DateFormat format, boolean forceIgnoreMidnightTime, SharedPreferences sharedPref) {
+        DateFormat jsonFormat = new SimpleDateFormat("yyyyMMdd'T'HHmmss");
+        jsonFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        if (TextUtils.isEmpty(due)) { // No value
+            return null;
+        }
+        try {
+            Date parsed = jsonFormat.parse(due);
+            if (null == format) { // Flexible -> date or date/time
+
+                if (sharedPref.getBoolean("useSimpleDatetime", true)) {
+                    // This is the datetime format taskwarrior returns
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'");
+                    dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+                    int countdown = Integer.parseInt(sharedPref.getString("dateCountDownThreshold",
+                            "7"));
+
+                    return DateConverter.convertToString(dateFormat.parse(due), countdown, forceIgnoreMidnightTime);
+                }
+            }
+            return format.format(parsed);
+        } catch (Exception e) {
+            Logger logger = Logger.forClass(MainListAdapter.class);
+            logger.e(e, "Failed to parse Date:", due);
+        }
+        return null;
     }
 }

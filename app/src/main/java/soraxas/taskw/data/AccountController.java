@@ -2,10 +2,14 @@ package soraxas.taskw.data;
 
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.LocalServerSocket;
 import android.net.LocalSocket;
 import android.net.Uri;
+
 import androidx.core.app.NotificationCompat;
+import androidx.preference.PreferenceManager;
+
 import android.text.TextUtils;
 
 import org.json.JSONArray;
@@ -27,15 +31,19 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -49,6 +57,7 @@ import soraxas.taskw.sync.SSLHelper;
 import soraxas.taskw.ui.MainActivity;
 import soraxas.taskw.ui.MainListAdapter;
 import soraxas.taskw.ui.RunActivity;
+import soraxas.taskw.utils.DateConverter;
 
 /**
  * Created by vorobyev on 11/17/15.
@@ -1010,10 +1019,11 @@ public class AccountController {
         if (null != tags) {
             intent.putExtra(App.KEY_EDIT_TAGS, MainListAdapter.join(" ", MainListAdapter.array2List(tags)));
         }
-        intent.putExtra(App.KEY_EDIT_DUE, MainListAdapter.asDate(json.optString("due"), "", null));
-        intent.putExtra(App.KEY_EDIT_WAIT, MainListAdapter.asDate(json.optString("wait"), "", null));
-        intent.putExtra(App.KEY_EDIT_SCHEDULED, MainListAdapter.asDate(json.optString("scheduled"), "", null));
-        intent.putExtra(App.KEY_EDIT_UNTIL, MainListAdapter.asDate(json.optString("until"), "", null));
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(controller.context());
+        intent.putExtra(App.KEY_EDIT_DUE, MainListAdapter.asDate(json.optString("due"), sharedPref));
+        intent.putExtra(App.KEY_EDIT_WAIT, MainListAdapter.asDate(json.optString("wait"), sharedPref));
+        intent.putExtra(App.KEY_EDIT_SCHEDULED, MainListAdapter.asDate(json.optString("scheduled"), sharedPref));
+        intent.putExtra(App.KEY_EDIT_UNTIL, MainListAdapter.asDate(json.optString("until"), sharedPref));
         intent.putExtra(App.KEY_EDIT_RECUR, json.optString("recur"));
         return true;
     }

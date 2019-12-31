@@ -6,10 +6,8 @@ import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.StrictMode;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.Menu;
@@ -24,10 +22,8 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.FileProvider;
 import androidx.core.util.Pair;
 import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -43,8 +39,6 @@ import org.kvj.bravo7.log.Logger;
 import org.kvj.bravo7.util.DataUtil;
 import org.kvj.bravo7.util.Tasks;
 
-import java.io.File;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -53,7 +47,6 @@ import in.srain.cube.views.ptr.PtrDefaultHandler;
 import in.srain.cube.views.ptr.PtrFrameLayout;
 import in.srain.cube.views.ptr.PtrHandler;
 import soraxas.taskw.App;
-import soraxas.taskw.BuildConfig;
 import soraxas.taskw.R;
 import soraxas.taskw.data.AccountController;
 import soraxas.taskw.data.Controller;
@@ -211,19 +204,19 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
                 }
                 if ("due".equals(type)) {
                     add(Pair.create(App.KEY_EDIT_DUE,
-                            MainListAdapter.asDate(json.optString("due"), "", null)));
+                            MainListAdapter.asDate(json.optString("due"), null)));
                 }
                 if ("wait".equals(type)) {
                     add(Pair.create(App.KEY_EDIT_WAIT,
-                            MainListAdapter.asDate(json.optString("wait"), "", null)));
+                            MainListAdapter.asDate(json.optString("wait"), null)));
                 }
                 if ("scheduled".equals(type)) {
                     add(Pair.create(App.KEY_EDIT_SCHEDULED,
-                            MainListAdapter.asDate(json.optString("scheduled"), "", null)));
+                            MainListAdapter.asDate(json.optString("scheduled"), null)));
                 }
                 if ("recur".equals(type)) {
                     add(Pair.create(App.KEY_EDIT_UNTIL,
-                            MainListAdapter.asDate(json.optString("until"), "", null)),
+                            MainListAdapter.asDate(json.optString("until"), null)),
                             Pair.create(App.KEY_EDIT_RECUR, json.optString("recur")));
                 }
             }

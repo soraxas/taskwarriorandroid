@@ -2,15 +2,17 @@ package soraxas.taskw.ui;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
+
+import androidx.preference.PreferenceManager;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
@@ -20,6 +22,7 @@ import soraxas.taskw.R;
 import soraxas.taskw.data.AccountController;
 import soraxas.taskw.data.Controller;
 import soraxas.taskw.data.ReportInfo;
+import soraxas.taskw.utils.DateConverter;
 
 
 public class WidgetDataProvider implements RemoteViewsService.RemoteViewsFactory {
@@ -99,45 +102,8 @@ public class WidgetDataProvider implements RemoteViewsService.RemoteViewsFactory
             RemoteViews date_label = new RemoteViews(context.getPackageName(), R.layout.item_one_label_left);
             remoteViews.addView(R.id.widget_item_container, date_label);
 
-
-            // This is the datetime format taskwarrior returns
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'");
-            dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-
-            // parse due date and compare to current date
-            try {
-                String date_to_display = "";
-                Date duedate = dateFormat.parse(due);
-                Date currentTime = Calendar.getInstance().getTime();
-
-                // if the delta date is within 7 days, displace the differences instead.
-                long different = duedate.getTime() - currentTime.getTime();
-                long elapsedDays = different / (1000 * 60 * 60 * 24);
-
-                if (elapsedDays < 7) {
-                    if (elapsedDays > 1){
-                        date_to_display = String.format("in %d days", elapsedDays);
-                    } else{
-                        date_to_display = String.format("in %d day", elapsedDays);
-                    }
-
-                } else {
-                    String datetime_pattern;
-                    // if the due date year is not same as current year, include the year in formatting as well
-                    if (duedate.getYear() == currentTime.getYear()) {
-                        datetime_pattern = "dd MMM";
-                    } else {
-                        datetime_pattern = "dd MMM YYYY";
-                    }
-                    date_to_display = new SimpleDateFormat(datetime_pattern).format(duedate);
-                }
-
-                remoteViews.setTextViewText(R.id.label_text, date_to_display);
-
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-
+            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
+            remoteViews.setTextViewText(R.id.label_text, MainListAdapter.asDate(due, true, sharedPref));
         }
 
         try {
