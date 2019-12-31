@@ -48,6 +48,10 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Map;
 
+import in.srain.cube.views.ptr.PtrClassicFrameLayout;
+import in.srain.cube.views.ptr.PtrDefaultHandler;
+import in.srain.cube.views.ptr.PtrFrameLayout;
+import in.srain.cube.views.ptr.PtrHandler;
 import soraxas.taskw.App;
 import soraxas.taskw.BuildConfig;
 import soraxas.taskw.R;
@@ -64,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
     private DrawerLayout navigationDrawer = null;
     private NavigationView navigation = null;
     private ViewGroup filterPanel = null;
+    private PtrClassicFrameLayout mPtrFrame;
 
 
     private FormController form = new FormController(new ViewFinder.ActivityViewFinder(this));
@@ -261,18 +266,19 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
             filterPanel.setVisibility(View.VISIBLE);
         }
 
-
         // pull-to-refresh swipeToRefresh
-        final SwipeRefreshLayout swipeContainer = (SwipeRefreshLayout) findViewById(R.id.swipeToRefresh);
-        // Setup refresh listener which triggers new data loading
-        swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+        mPtrFrame = findViewById(R.id.list_fragment_pull_to_refresh);
+        mPtrFrame.setLastUpdateTimeRelateObject(this);
+        mPtrFrame.setPtrHandler(new PtrHandler() {
             @Override
-            public void onRefresh() {
-                // Your code to refresh the list here.
-                // Make sure you call swipeContainer.setRefreshing(false)
-                // once the network request has completed successfully.
+            public void onRefreshBegin(PtrFrameLayout frame) {
                 sync();
-                swipeContainer.setRefreshing(false);
+                frame.refreshComplete();
+            }
+
+            @Override
+            public boolean checkCanDoRefresh(PtrFrameLayout frame, View content, View header) {
+                return PtrDefaultHandler.checkContentCanBePulledDown(frame, findViewById(R.id.list_main_list), header);
             }
         });
 
