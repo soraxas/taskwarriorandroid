@@ -49,12 +49,19 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
 
     public interface ItemListener {
         public void onEdit(JSONObject json);
+
         public void onStatus(JSONObject json);
+
         public void onDelete(JSONObject json);
+
         public void onAnnotate(JSONObject json);
+
         public void onStartStop(JSONObject json);
+
         public void onDenotate(JSONObject json, JSONObject annJson);
+
         public void onCopyText(JSONObject json, String text);
+
         public void onLabelClick(JSONObject json, String type, boolean longClick);
     }
 
@@ -78,20 +85,20 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
             return;
         }
         view.setOnLongClickListener(
-            new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View v) {
-                    logger.d("Long click on description", json);
-                    if (null != listener) listener.onCopyText(json, text);
-                    return true;
-                }
-            });
+                new View.OnLongClickListener() {
+                    @Override
+                    public boolean onLongClick(View v) {
+                        logger.d("Long click on description", json);
+                        if (null != listener) listener.onCopyText(json, text);
+                        return true;
+                    }
+                });
     }
 
     @Override
     public void onBindViewHolder(ListViewHolder holder, int position) {
         boolean last = getItemCount() - 1 == position;
-        holder.itemView.setPadding(0, 0, 0, last? lastMargin: 0);
+        holder.itemView.setPadding(0, 0, 0, last ? lastMargin : 0);
         final JSONObject json = data.get(position);
         holder.card.removeAllViews();
         TaskView card = fill(holder.itemView.getContext(), json, info, urgMin, urgMax);
@@ -104,7 +111,10 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
         final ViewGroup annotations = (ViewGroup) holder.card.findViewById(R.id.task_annotations);
         final View id = holder.card.findViewById(R.id.task_id);
         bottomBtns.setVisibility(View.GONE);
-        holder.card.findViewById(R.id.task_more_btn).setOnClickListener(new View.OnClickListener() {
+
+
+        // clicking on description reveal more details
+        holder.card.findViewById(R.id.task_description).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 boolean visible = bottomBtns.getVisibility() == View.VISIBLE;
@@ -123,29 +133,29 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
             }
         });
         holder.card.findViewById(R.id.task_status_btn).setOnClickListener(
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (null != listener)
-                        listener.onStatus(json);
-                }
-            });
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (null != listener)
+                            listener.onStatus(json);
+                    }
+                });
         holder.card.findViewById(R.id.task_delete_btn).setOnClickListener(
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (null != listener)
-                        listener.onDelete(json);
-                }
-            });
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (null != listener)
+                            listener.onDelete(json);
+                    }
+                });
         holder.card.findViewById(R.id.task_annotate_btn).setOnClickListener(
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (null != listener)
-                        listener.onAnnotate(json);
-                }
-            });
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (null != listener)
+                            listener.onAnnotate(json);
+                    }
+                });
         holder.card.findViewById(R.id.task_start_stop_btn).setOnClickListener(
                 new View.OnClickListener() {
                     @Override
@@ -160,8 +170,8 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
             for (int i = 0; i < annotationsArr.length(); i++) { // Show and bind delete button
                 JSONObject jsonAnn = annotationsArr.optJSONObject(i);
                 bindLongCopyText(json,
-                                 annotations.getChildAt(i).findViewById(R.id.task_ann_text),
-                                 jsonAnn.optString("description"));
+                        annotations.getChildAt(i).findViewById(R.id.task_ann_text),
+                        jsonAnn.optString("description"));
                 View deleteBtn = annotations.getChildAt(i).findViewById(R.id.task_ann_delete_btn);
                 if (null != deleteBtn) {
                     deleteBtn.setVisibility(View.VISIBLE);
@@ -224,7 +234,7 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
     }
 
     public <O, V> void morph(List<O> from, List<O> to, Accessor<O, V> acc) {
-        for (int i = 0; i < to.size();) {
+        for (int i = 0; i < to.size(); ) {
             O item = to.get(i);
             V id = acc.get(item);
             boolean remove = indexOf(from, acc, id) == -1; // Item not found in new array
@@ -238,7 +248,7 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
         for (int i = 0; i < from.size(); i++) {
             O item = from.get(i);
             V id = acc.get(item);
-            int idx =  indexOf(to, acc, id); // Location in old array
+            int idx = indexOf(to, acc, id); // Location in old array
             if (idx == -1) { // Add item
                 notifyItemInserted(i);
                 to.add(i, item);
@@ -282,6 +292,8 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
         public ListViewHolder(View itemView) {
             super(itemView);
             card = (CardView) itemView.findViewById(R.id.card_card);
+
+
         }
     }
 
@@ -298,7 +310,7 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.item_one_task);
         TaskView result = new TaskView();
         result.removeView = views;
-        views.setViewVisibility(R.id.task_urgency, info.fields.containsKey("urgency")? View.VISIBLE: View.GONE);
+        views.setViewVisibility(R.id.task_urgency, info.fields.containsKey("urgency") ? View.VISIBLE : View.GONE);
         views.setViewVisibility(R.id.task_priority, info.fields.containsKey("priority") ? View.VISIBLE : View.GONE);
         views.setImageViewResource(R.id.task_status_btn, status2icon(status));
         views.setViewVisibility(R.id.task_annotations, View.GONE);
@@ -328,19 +340,19 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
             }
             if (field.getKey().equalsIgnoreCase("priority")) {
                 int index = info.priorities.indexOf(json.optString("priority", ""));
-                if(index == -1) {
+                if (index == -1) {
                     views.setProgressBar(R.id.task_priority, 0, 0, false);
                 } else {
                     views.setProgressBar(R.id.task_priority, info.priorities.size() - 1,
-                                         info.priorities.size() - index - 1, false);
+                            info.priorities.size() - index - 1, false);
                 }
             }
             if (field.getKey().equalsIgnoreCase("urgency")) {
-                views.setProgressBar(R.id.task_urgency, urgMax-urgMin, (int)Math.round(json.optDouble("urgency"))-urgMin, false);
+                views.setProgressBar(R.id.task_urgency, urgMax - urgMin, (int) Math.round(json.optDouble("urgency")) - urgMin, false);
             }
             if (field.getKey().equalsIgnoreCase("due")) {
                 addLabel(context, result, "due", true, R.drawable.ic_label_due,
-                         asDate(json.optString("due"), field.getValue(), null));
+                        asDate(json.optString("due"), field.getValue(), null));
             }
             if (field.getKey().equalsIgnoreCase("wait")) {
                 addLabel(context, result, "wait", true, R.drawable.ic_label_wait,
@@ -366,14 +378,14 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
             }
             if (field.getKey().equalsIgnoreCase("tags")) {
                 addLabel(context, result, "tags", false, R.drawable.ic_label_tags, join(", ", array2List(
-                    json.optJSONArray("tags"))));
+                        json.optJSONArray("tags"))));
             }
             if (field.getKey().equalsIgnoreCase("start")) {
                 String started = asDate(json.optString("start"), field.getValue(), formattedFormatDT);
                 boolean isStarted = !TextUtils.isEmpty(started);
                 if (pending) { // Can be started/stopped
                     views.setViewVisibility(R.id.task_start_stop_btn, View.VISIBLE);
-                    views.setImageViewResource(R.id.task_start_stop_btn, isStarted? R.drawable.ic_action_stop: R.drawable.ic_action_start);
+                    views.setImageViewResource(R.id.task_start_stop_btn, isStarted ? R.drawable.ic_action_stop : R.drawable.ic_action_start);
                 }
             }
         }
@@ -447,13 +459,13 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
         if (TextUtils.isEmpty(text)) { // No label
             return;
         }
-        RemoteViews line = new RemoteViews(context.getPackageName(), left?
-                R.layout.item_one_label_left:
+        RemoteViews line = new RemoteViews(context.getPackageName(), left ?
+                R.layout.item_one_label_left :
                 R.layout.item_one_label_right);
         line.setTextViewText(R.id.label_text, text);
         line.setImageViewResource(R.id.label_icon, icon);
         view.removeView.addView(left ? R.id.task_labels_left : R.id.task_labels_right, line);
-        (left? view.leftColumn: view.rightColumn).add(code);
+        (left ? view.leftColumn : view.rightColumn).add(code);
     }
 
     public void listener(ItemListener listener) {
