@@ -1,7 +1,9 @@
 package soraxas.taskw.ui;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+
 import androidx.core.view.MenuItemCompat;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.ShareActionProvider;
@@ -10,11 +12,15 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.text.TextUtils;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -60,8 +66,28 @@ public class RunActivity extends AppCompatActivity {
         form.add(new TransientAdapter<>(new ListStringBundleAdapter(), null), App.KEY_RUN_OUTPUT);
         form.add(new TextViewCharSequenceAdapter(R.id.run_command, null), App.KEY_RUN_COMMAND);
         form.load(this, savedInstanceState);
+
+        // Enter key trigger button press of running command
+        final EditText edittext = findViewById(R.id.run_command);
+        edittext.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if ((event != null && (event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) ||
+                        (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_SEND)) {
+                    //do what you want on the press of 'done'
+                    run();
+                    // close keyboard
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(edittext.getWindowToken(), 0);
+                    return true;
+                }
+                return false;
+            }
+        });
+        // Set enter key custom test
+        edittext.setImeActionLabel("Run", KeyEvent.KEYCODE_ENTER);
+
         progressListener = MainActivity
-            .setupProgressListener(this, (ProgressBar) findViewById(R.id.progress));
+                .setupProgressListener(this, (ProgressBar) findViewById(R.id.progress));
         ac = controller.accountController(form);
         if (null == ac) {
             controller.messageShort("Invalid arguments");
@@ -186,7 +212,7 @@ public class RunActivity extends AppCompatActivity {
         @Override
         public RunAdapterItem onCreateViewHolder(ViewGroup parent, int viewType) {
             return new RunAdapterItem(LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_run_output, parent, false));
+                    .inflate(R.layout.item_run_output, parent, false));
         }
 
         @Override

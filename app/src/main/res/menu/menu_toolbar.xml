@@ -1,11 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
-    <item android:id="@+id/menu_tb_undo" android:title="Undo" android:icon="@drawable/ic_action_undo" app:showAsAction="always"/>
-    <item android:id="@+id/menu_tb_sync" android:title="Sync" android:icon="@drawable/ic_action_sync" app:showAsAction="ifRoom"></item>
-    <item android:id="@+id/menu_tb_reload" android:title="Reload" android:icon="@drawable/ic_action_refresh" app:showAsAction="ifRoom"></item>
-    <item android:id="@+id/menu_tb_filter" android:title="Custom filter..." android:icon="@drawable/ic_action_filter" app:showAsAction="ifRoom"></item>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-            android:id="@+id/menu_tb_add_shortcut"
-            android:title="Add shortcut to home..."
-            app:showAsAction="never"></item>
+        android:id="@+id/menu_tb_undo"
+        android:icon="@drawable/ic_action_undo"
+        android:title="Undo"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/menu_tb_run"
+        android:icon="@drawable/ic_action_start"
+        android:title="Run custom..."
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/menu_tb_sync"
+        android:icon="@drawable/ic_action_sync"
+        android:title="Sync"
+        app:showAsAction="ifRoom"></item>
+    <item
+        android:id="@+id/menu_tb_reload"
+        android:icon="@drawable/ic_action_refresh"
+        android:title="Reload"
+        app:showAsAction="ifRoom"></item>
+    <item
+        android:id="@+id/menu_tb_filter"
+        android:icon="@drawable/ic_action_filter"
+        android:title="Custom filter..."
+        app:showAsAction="ifRoom"></item>
+    <item
+        android:id="@+id/menu_tb_add_shortcut"
+        android:title="Add shortcut to home..."
+        app:showAsAction="never"></item>
 </menu>

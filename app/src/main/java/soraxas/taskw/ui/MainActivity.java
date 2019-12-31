@@ -659,6 +659,9 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
             case R.id.menu_tb_add_shortcut:
                 createShortcut();
                 break;
+            case R.id.menu_tb_run:
+                startActivity(ac.intentForRunTask());
+                break;
         }
         return true;
     }
