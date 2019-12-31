@@ -15,6 +15,6 @@ public class WidgetService extends RemoteViewsService {
 
     @Override
     public void onCreate(){
-        startForeground(1, new Notification(1, "haha", 10000));
+//        startForeground(1, new Notification(1, "haha", 10000));
     }
 }

@@ -355,30 +355,8 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
                 }
                 break;
             case R.id.menu_nav_settings:
-                // hacky way to disable the runtime check of URI expose
-                // https://stackoverflow.com/questions/38200282/android-os-fileuriexposedexception-file-storage-emulated-0-test-txt-exposed/38858040
-                if (Build.VERSION.SDK_INT >= 24) {
-                    try {
-                        Method m = StrictMode.class.getMethod("disableDeathOnFileUriExposure");
-                        m.invoke(null);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-                // Open taskrc for editing
-                Intent intent = new Intent(Intent.ACTION_EDIT);
-//                Uri uri = FileProvider.getUriForFile(MainActivity.this,
-//                        BuildConfig.APPLICATION_ID + ".provider",
-//                        new File(ac.taskrc().getAbsolutePath()));
-                Uri uri = Uri.parse(String.format("file://%s", ac.taskrc().getAbsolutePath()));
-                intent.setDataAndType(uri, "text/plain");
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                try {
-                    startActivityForResult(intent, App.SETTINGS_REQUEST);
-                } catch (Exception e) {
-                    logger.e(e, "Failed to edit file");
-                    controller.messageLong("No suitable plain text editors found");
-                }
+                Intent intent = new Intent(controller.context(), SettingsActivity.class);
+                startActivity(intent);
                 break;
         }
     }
