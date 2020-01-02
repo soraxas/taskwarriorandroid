@@ -5,12 +5,15 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RemoteViews;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.cardview.widget.CardView;
 import androidx.preference.PreferenceManager;
@@ -25,12 +28,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
 import soraxas.taskw.R;
-import soraxas.taskw.data.AccountController;
 import soraxas.taskw.data.ReportInfo;
 import soraxas.taskw.utils.DateConverter;
 
@@ -79,11 +82,6 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
     private ItemListener listener = null;
 
     @Override
-    public ListViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        return new ListViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_one_card, parent, false));
-    }
-
-    @Override
     public int getItemCount() {
         return data.size();
     }
@@ -104,51 +102,262 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
     }
 
     @Override
+    public ListViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        Context context = parent.getContext();
+        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.item_one_task);
+
+        // create view and viewHolder
+        ListViewHolder viewHolder = new ListViewHolder(LayoutInflater.from(parent.getContext()).inflate(
+                R.layout.item_one_card, parent, false), views);
+
+        // set all as initially gone
+        views.setViewVisibility(R.id.task_urgency, View.GONE);
+        views.setViewVisibility(R.id.task_priority, View.GONE);
+        views.setViewVisibility(R.id.task_annotations_flag, View.GONE);
+
+        views.removeAllViews(R.id.task_labels_left);
+        views.removeAllViews(R.id.task_labels_right);
+
+        return viewHolder;
+    }
+
+    @Override
     public void onBindViewHolder(final ListViewHolder holder, int position) {
+        // load data
         boolean last = getItemCount() - 1 == position;
         holder.itemView.setPadding(0, 0, 0, last ? lastMargin : 0);
         final JSONObject json = data.get(position);
-        holder.card.removeAllViews();
-        TaskView card = fill(holder.itemView.getContext(), json, info, urgMin, urgMax);
-        holder.card.addView(card.removeView.apply(holder.itemView.getContext(), holder.card));
-        setupLabelListeners(holder.itemView.getContext(), json,
-                (ViewGroup) holder.card.findViewById(R.id.task_labels_left), card.leftColumn);
-        setupLabelListeners(holder.itemView.getContext(), json,
-                (ViewGroup) holder.card.findViewById(R.id.task_labels_right), card.rightColumn);
-        final View bottomBtns = holder.card.findViewById(R.id.task_bottom_btns);
-        final ViewGroup annotations = (ViewGroup) holder.card.findViewById(R.id.task_annotations);
-        final View id = holder.card.findViewById(R.id.task_id);
-        bottomBtns.setVisibility(View.GONE);
+
+        Context context = holder.itemView.getContext();
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
+
+        // reset all as gone
+
+//        final TextView desc = holder.card.findViewById(R.id.card_card);
+//
+//        desc.setClickable(false);
+//        desc.setFocusable(false);
 
 
-        // clicking on description reveal more details
-        holder.card.findViewById(R.id.task_description).setOnClickListener(new View.OnClickListener() {
+//        holder.itemView.findViewById(R.id.task_description).setOnClickListener(new View.OnClickListener() {
+////        holder.itemView.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                Context context = holder.itemView.getContext();
+//
+//                View taskDetailView = inflateTaskDetailView(json, context);
+//                bindTaskDetailView(taskDetailView, json);
+//                showD(context, taskDetailView);
+//            }
+//        });
+
+
+//        holder.itemView.findViewById(R.id.task_view_inner).setOnTouchListener(new View.OnTouchListener() {
+//            @Override
+//            public boolean onTouch(View v, MotionEvent event) {
+//                // run action on release
+//                if (event.getAction() == MotionEvent.ACTION_UP) {
+//
+//                    Context context = holder.itemView.getContext();
+//
+//                    View taskDetailView = inflateTaskDetailView(json, context);
+//                    bindTaskDetailView(taskDetailView, json);
+//                    showD(context, taskDetailView);
+//                }
+//                // ignore all touch events
+//                return true;
+//            }
+//        });
+
+        holder.itemView.findViewById(R.id.task_view).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                boolean visible = bottomBtns.getVisibility() == View.VISIBLE;
-                int newVisibility = visible ? View.GONE : View.VISIBLE;
-                bottomBtns.setVisibility(newVisibility);
-                annotations.setVisibility(newVisibility);
-                id.setVisibility(newVisibility);
-
-
-                // inflate task detail view
                 Context context = holder.itemView.getContext();
 
-                showD(context, inflateTaskDetailView(json, context));
-
-
+                View taskDetailView = inflateTaskDetailView(json, context);
+                bindTaskDetailView(taskDetailView, json);
+                showD(context, taskDetailView);
             }
         });
-        bindLongCopyText(json, holder.card.findViewById(R.id.task_description), json.optString("description"));
-        holder.card.findViewById(R.id.task_edit_btn).setOnClickListener(new View.OnClickListener() {
+
+
+        // color card that has been started
+        if (info.fields.containsKey("start")) {
+            String status = json.optString("status", "pending");
+            if ("pending".equalsIgnoreCase(status)) {
+                boolean isStarted = !TextUtils.isEmpty(json.optString("start"));
+                // this has started and is pending
+                if (isStarted) {
+                    holder.card.setBackgroundResource(R.color.DarkCyan);
+                }
+            }
+        }
+
+
+        View views = holder.itemView;
+
+        // remove previous data
+//        views.findViewById(R.id.task_urgency).setVisibility(View.GONE);
+//        views.findViewById(R.id.task_priority).setVisibility(View.GONE);
+//        views.findViewById(R.id.task_annotations_flag).setVisibility(View.GONE);
+        boolean hasAnno = json.optJSONArray("annotations") != null;
+        views.findViewById(R.id.task_annotations_flag).setVisibility(hasAnno ? View.VISIBLE : View.GONE);
+
+        ((ViewGroup) views.findViewById(R.id.task_labels_left)).removeAllViews();
+        ((ViewGroup) views.findViewById(R.id.task_labels_right)).removeAllViews();
+
+        boolean hasBottomLabels = false;
+        // update view with data
+//        for (Map.Entry<String, String> field : info.fields.entrySet()) {
+//            switch (field.getKey().toLowerCase()) {
+//                case "description":
+//                    // Set desc
+//                    TextView desc = views.findViewById(R.id.task_description);
+//                    desc.setText(json.optString("description"));
+//                    desc.setClickable(false);
+//                    desc.setFocusable(false);
+//                    break;
+//                case "priority":
+//                    int index = info.priorities.indexOf(json.optString("priority", ""));
+//                    if (index == -1) {
+//                        ProgressBar pb = views.findViewById(R.id.task_priority);
+//                        pb.setMax(0);
+//                        pb.setProgress(0);
+//                    } else {
+//                        ProgressBar pb = views.findViewById(R.id.task_priority);
+//                        pb.setMax(info.priorities.size() - 1);
+//                        pb.setProgress(info.priorities.size() - index - 1);
+//                    }
+//                    break;
+//                case "urgency":
+//                    ProgressBar pb = views.findViewById(R.id.task_urgency);
+//                    pb.setMax(urgMax - urgMin);
+//                    pb.setProgress((int) Math.round(json.optDouble("urgency")) - urgMin);
+//                    break;
+//                case "due":
+//                    addLabel(context, views, "due", true, R.drawable.ic_label_due,
+//                            asDate(json.optString("due"), sharedPref));
+//                    hasBottomLabels = true;
+//                    break;
+//                case "wait":
+//                    addLabel(context, views, "wait", true, R.drawable.ic_label_wait,
+//                            asDate(json.optString("wait"), sharedPref));
+//                    hasBottomLabels = true;
+//                    break;
+//                case "scheduled":
+//                    addLabel(context, views, "scheduled", true, R.drawable.ic_label_scheduled,
+//                            asDate(json.optString("scheduled"), sharedPref));
+//                    hasBottomLabels = true;
+//                    break;
+//                case "recur":
+//                    String recur = json.optString("recur");
+//                    if (!TextUtils.isEmpty(recur) && info.fields.containsKey("until")) {
+//                        String until = asDate(json.optString("until"), sharedPref);
+//                        if (!TextUtils.isEmpty(until)) {
+//                            recur += String.format(" ~ %s", until);
+//                        }
+//                    }
+//                    addLabel(context, views, "recur", true, R.drawable.ic_label_recur, recur);
+//                    hasBottomLabels = true;
+//                    break;
+//                case "project":
+//                    addLabel(context, views, "project", false, R.drawable.ic_label_project,
+//                            json.optString("project"));
+//                    hasBottomLabels = true;
+//                    break;
+//                case "tags":
+//                    addLabel(context, views, "tags", false, R.drawable.ic_label_tags, join(", ", array2List(
+//                            json.optJSONArray("tags"))));
+//                    hasBottomLabels = true;
+//                    break;
+//            }
+//        }
+
+
+        for (Iterator<String> it = json.keys(); it.hasNext(); ) {
+            String k = it.next();
+            switch (k) {
+                case "description":
+                    // Set desc
+                    TextView desc = views.findViewById(R.id.task_description);
+                    desc.setText(json.optString("description"));
+                    break;
+                case "priority":
+                    int index = info.priorities.indexOf(json.optString("priority", ""));
+                    if (index == -1) {
+                        ProgressBar pb = views.findViewById(R.id.task_priority);
+                        pb.setMax(0);
+                        pb.setProgress(0);
+                    } else {
+                        ProgressBar pb = views.findViewById(R.id.task_priority);
+                        pb.setMax(info.priorities.size() - 1);
+                        pb.setProgress(info.priorities.size() - index - 1);
+                    }
+                    break;
+                case "urgency":
+                    ProgressBar pb = views.findViewById(R.id.task_urgency);
+                    pb.setMax(urgMax - urgMin);
+                    pb.setProgress((int) Math.round(json.optDouble("urgency")) - urgMin);
+                    break;
+                case "due":
+                    addLabel(context, views, "due", true, R.drawable.ic_label_due,
+                            asDate(json.optString("due"), sharedPref));
+                    hasBottomLabels = true;
+                    break;
+                case "wait":
+                    addLabel(context, views, "wait", true, R.drawable.ic_label_wait,
+                            asDate(json.optString("wait"), sharedPref));
+                    hasBottomLabels = true;
+                    break;
+                case "scheduled":
+                    addLabel(context, views, "scheduled", true, R.drawable.ic_label_scheduled,
+                            asDate(json.optString("scheduled"), sharedPref));
+                    hasBottomLabels = true;
+                    break;
+                case "recur":
+                    String recur = json.optString("recur");
+                    if (!TextUtils.isEmpty(recur) && info.fields.containsKey("until")) {
+                        String until = asDate(json.optString("until"), sharedPref);
+                        if (!TextUtils.isEmpty(until)) {
+                            recur += String.format(" ~ %s", until);
+                        }
+                    }
+                    addLabel(context, views, "recur", true, R.drawable.ic_label_recur, recur);
+                    hasBottomLabels = true;
+                    break;
+                case "project":
+                    addLabel(context, views, "project", false, R.drawable.ic_label_project,
+                            json.optString("project"));
+                    hasBottomLabels = true;
+                    break;
+                case "tags":
+                    addLabel(context, views, "tags", false, R.drawable.ic_label_tags, join(", ", array2List(
+                            json.optJSONArray("tags"))));
+                    hasBottomLabels = true;
+                    break;
+            }
+        }
+
+        if (!hasBottomLabels){
+            // make label match parent
+            views.findViewById(R.id.task_description_outer).setLayoutParams(
+                    new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
+        }
+    }
+
+
+    private void bindTaskDetailView(View view, final JSONObject json) {
+        final ViewGroup annotations = (ViewGroup) view.findViewById(R.id.task_annotations);
+
+        bindLongCopyText(json, view.findViewById(R.id.task_description), json.optString("description"));
+        view.findViewById(R.id.task_edit_btn).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (null != listener)
                     listener.onEdit(json);
             }
         });
-        holder.card.findViewById(R.id.task_status_btn).setOnClickListener(
+        view.findViewById(R.id.task_status_btn).setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -156,7 +365,7 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
                             listener.onStatus(json);
                     }
                 });
-        holder.card.findViewById(R.id.task_delete_btn).setOnClickListener(
+        view.findViewById(R.id.task_delete_btn).setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -164,7 +373,7 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
                             listener.onDelete(json);
                     }
                 });
-        holder.card.findViewById(R.id.task_annotate_btn).setOnClickListener(
+        view.findViewById(R.id.task_annotate_btn).setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -172,7 +381,7 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
                             listener.onAnnotate(json);
                     }
                 });
-        holder.card.findViewById(R.id.task_start_stop_btn).setOnClickListener(
+        view.findViewById(R.id.task_start_stop_btn).setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -195,8 +404,8 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
                 }
             }
         }
-    }
 
+    }
 
     private View inflateTaskDetailView(final JSONObject json, Context context) {
 
@@ -210,7 +419,7 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
 //        final JSONObject json = data.get(position);
 //        holder.card.removeAllViews();
 //        TaskView card = fill(holder.itemView.getContext(), json, info, urgMin, urgMax);
-//        holder.card.addView(card.removeView.apply(holder.itemView.getContext(), holder.card));
+//        holder.card.addView(card.remoteView.apply(holder.itemView.getContext(), holder.card));
 //        setupLabelListeners(holder.itemView.getContext(), json,
 //                (ViewGroup) holder.card.findViewById(R.id.task_labels_left), card.leftColumn);
 //        setupLabelListeners(holder.itemView.getContext(), json,
@@ -228,115 +437,100 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
         ///////////////////////////
 
 
-
-
-
         String status = json.optString("status", "pending");
-
 
 
         ((ImageView) views.findViewById(R.id.task_status_btn)).setImageResource(status2icon(status));
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
         for (Map.Entry<String, String> field : info.fields.entrySet()) {
-            if (field.getKey().equalsIgnoreCase("description")) {
-                // Show title
+            switch (field.getKey().toLowerCase()) {
+                case "description":
+                    // Set desc
+                    TextView desc = views.findViewById(R.id.task_description);
+                    desc.setText(json.optString("description"));
 
-                TextView desc = views.findViewById(R.id.task_description);
-                desc.setText(json.optString("description"));
+                    JSONArray annotations = json.optJSONArray("annotations");
+                    if (null != annotations && annotations.length() > 0) {
+                        // Have annotations
 
-//                views.setTextViewText(R.id.task_description, json.optString("description"));
-                JSONArray annotations = json.optJSONArray("annotations");
-                if (null != annotations && annotations.length() > 0) {
-                    // Have annotations
-                    views.findViewById(R.id.task_annotations_flag).setVisibility(View.VISIBLE);
-//                    views.setViewVisibility(R.id.task_annotations_flag, View.VISIBLE);
-                    if ("".equals(field.getValue())) {
-                        for (int i = 0; i < annotations.length(); i++) {
-                            JSONObject ann = annotations.optJSONObject(i);
-//                            RemoteViews annView = new RemoteViews(context.getPackageName(), R.layout.item_one_annotation);
-//                            annView.setTextViewText(R.id.task_ann_text, ann.optString("description", "Untitled"));
-//                            annView.setTextViewText(R.id.task_ann_date, asDate(ann.optString("entry"), sharedPref));
+                        if ("".equals(field.getValue())) {
+                            for (int i = 0; i < annotations.length(); i++) {
+                                JSONObject ann = annotations.optJSONObject(i);
 
+                                View annView = View.inflate(context, R.layout.item_one_annotation, null);
+                                ((TextView) annView.findViewById(R.id.task_ann_text)).setText(ann.optString("description", "Untitled"));
+                                ((TextView) annView.findViewById(R.id.task_ann_date)).setText(asDate(ann.optString("entry"), sharedPref));
 
-                            View annView = View.inflate(context, R.layout.item_one_annotation, null);
-                            ((TextView) annView.findViewById(R.id.task_ann_text)).setText(ann.optString("description", "Untitled"));
-                            ((TextView) annView.findViewById(R.id.task_ann_date)).setText(asDate(ann.optString("entry"), sharedPref));
-
-                            ViewGroup insertPoint = (ViewGroup) views.findViewById(R.id.task_annotations);
-                            insertPoint.addView(annView, 0, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT));
-
-
+                                ViewGroup insertPoint = views.findViewById(R.id.task_annotations);
+                                insertPoint.addView(annView, 0, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT));
+                            }
                         }
                     }
-                }
-            }
-            if (field.getKey().equalsIgnoreCase("id")) {
-                ((TextView) views.findViewById(R.id.task_id)).setText(String.format("[%d]", json.optInt("id", -1)));
-            }
-            if (field.getKey().equalsIgnoreCase("priority")) {
-                int index = info.priorities.indexOf(json.optString("priority", ""));
-                if (index == -1) {
-                    ProgressBar pb = views.findViewById(R.id.task_priority);
-                    pb.setMax(0);
-                    pb.setProgress(0);
-                } else {
-                    ProgressBar pb = views.findViewById(R.id.task_priority);
-                    pb.setMax(info.priorities.size() - 1);
-                    pb.setProgress(info.priorities.size() - index - 1);
-                }
-            }
-            if (field.getKey().equalsIgnoreCase("urgency")) {
-                ProgressBar pb = views.findViewById(R.id.task_urgency);
-                pb.setMax(urgMax - urgMin);
-                pb.setProgress((int) Math.round(json.optDouble("urgency")) - urgMin);
-            }
-            if (field.getKey().equalsIgnoreCase("due")) {
-                addLabel(context, views, "due", true, R.drawable.ic_label_due,
-                        asDate(json.optString("due"), sharedPref));
-            }
-            if (field.getKey().equalsIgnoreCase("wait")) {
-                addLabel(context, views, "wait", true, R.drawable.ic_label_wait,
-                        asDate(json.optString("wait"), sharedPref));
-            }
-            if (field.getKey().equalsIgnoreCase("scheduled")) {
-                addLabel(context, views, "scheduled", true, R.drawable.ic_label_scheduled,
-                        asDate(json.optString("scheduled"), sharedPref));
-            }
-            if (field.getKey().equalsIgnoreCase("recur")) {
-                String recur = json.optString("recur");
-                if (!TextUtils.isEmpty(recur) && info.fields.containsKey("until")) {
-                    String until = asDate(json.optString("until"), sharedPref);
-                    if (!TextUtils.isEmpty(until)) {
-                        recur += String.format(" ~ %s", until);
+                    break;
+                case "id":
+                    ((TextView) views.findViewById(R.id.task_id)).setText(String.format("[%d]", json.optInt("id", -1)));
+                    break;
+                case "priority":
+                    int index = info.priorities.indexOf(json.optString("priority", ""));
+                    if (index == -1) {
+                        ProgressBar pb = views.findViewById(R.id.task_priority);
+                        pb.setMax(0);
+                        pb.setProgress(0);
+                    } else {
+                        ProgressBar pb = views.findViewById(R.id.task_priority);
+                        pb.setMax(info.priorities.size() - 1);
+                        pb.setProgress(info.priorities.size() - index - 1);
                     }
-                }
-                addLabel(context, views, "recur", true, R.drawable.ic_label_recur, recur);
-            }
-            if (field.getKey().equalsIgnoreCase("project")) {
-                addLabel(context, views, "project", false, R.drawable.ic_label_project,
-                        json.optString("project"));
-            }
-            if (field.getKey().equalsIgnoreCase("tags")) {
-                addLabel(context, views, "tags", false, R.drawable.ic_label_tags, join(", ", array2List(
-                        json.optJSONArray("tags"))));
-            }
-            if (field.getKey().equalsIgnoreCase("start")) {
-                String started = asDate(json.optString("start"), sharedPref);
-                boolean isStarted = !TextUtils.isEmpty(started);
+                    break;
+                case "urgency":
+                    ProgressBar pb = views.findViewById(R.id.task_urgency);
+                    pb.setMax(urgMax - urgMin);
+                    pb.setProgress((int) Math.round(json.optDouble("urgency")) - urgMin);
+                    break;
+                case "due":
+                    addLabel(context, views, "due", true, R.drawable.ic_label_due,
+                            asDate(json.optString("due"), sharedPref));
+                    break;
+                case "wait":
+                    addLabel(context, views, "wait", true, R.drawable.ic_label_wait,
+                            asDate(json.optString("wait"), sharedPref));
+                    break;
+                case "scheduled":
+                    addLabel(context, views, "scheduled", true, R.drawable.ic_label_scheduled,
+                            asDate(json.optString("scheduled"), sharedPref));
+                    break;
+                case "recur":
+                    String recur = json.optString("recur");
+                    if (!TextUtils.isEmpty(recur) && info.fields.containsKey("until")) {
+                        String until = asDate(json.optString("until"), sharedPref);
+                        if (!TextUtils.isEmpty(until)) {
+                            recur += String.format(" ~ %s", until);
+                        }
+                    }
+                    addLabel(context, views, "recur", true, R.drawable.ic_label_recur, recur);
+                    break;
+                case "project":
+                    addLabel(context, views, "project", false, R.drawable.ic_label_project,
+                            json.optString("project"));
+                    break;
+                case "tags":
+                    addLabel(context, views, "tags", false, R.drawable.ic_label_tags, join(", ", array2List(
+                            json.optJSONArray("tags"))));
+                    break;
+                case "start":
+                    String started = asDate(json.optString("start"), sharedPref);
+                    boolean isStarted = !TextUtils.isEmpty(started);
 
-                if ("pending".equalsIgnoreCase(status)) { // Can be started/stopped
-                    views.findViewById(R.id.task_start_stop_btn).setVisibility(View.VISIBLE);
-                    ((ImageView) views.findViewById(R.id.task_start_stop_btn)).setImageResource(isStarted ? R.drawable.ic_action_stop : R.drawable.ic_action_start);
-                }
+                    if ("pending".equalsIgnoreCase(status)) { // Can be started/stopped
+                        views.findViewById(R.id.task_start_stop_btn).setVisibility(View.VISIBLE);
+                        ((ImageView) views.findViewById(R.id.task_start_stop_btn)).setImageResource(isStarted ? R.drawable.ic_action_stop : R.drawable.ic_action_start);
+                    }
+                    break;
             }
+
         }
-
-
         return views;
-
-
-//        return view;
     }
 
 
@@ -447,221 +641,19 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
     public static class ListViewHolder extends RecyclerView.ViewHolder {
 
         private final CardView card;
+        private final RemoteViews remoteView;
 
-        public ListViewHolder(View itemView) {
+        public ListViewHolder(final View itemView, RemoteViews rv) {
             super(itemView);
             card = (CardView) itemView.findViewById(R.id.card_card);
-
-
+            remoteView = rv;
         }
     }
 
     public static class TaskView {
-        public RemoteViews removeView = null;
+        public RemoteViews remoteView = null;
         public List<String> leftColumn = new ArrayList<>();
         public List<String> rightColumn = new ArrayList<>();
-    }
-
-//    public static TaskView fill(Context context, JSONObject json, ReportInfo info, int urgMin, int urgMax) {
-////        logger.d("Fill", json, info.fields);
-//        String status = json.optString("status", "pending");
-//        boolean pending = "pending".equalsIgnoreCase(status);
-//        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.item_one_task);
-//
-//
-////        View views = View.inflate(context, R.layout.item_one_task_detail, null);
-//
-//        TaskView result = new TaskView();
-//        result.removeView = views;
-////        views.setViewVisibility(R.id.task_urgency, info.fields.containsKey("urgency") ? View.VISIBLE : View.GONE);
-////        views.setViewVisibility(R.id.task_priority, info.fields.containsKey("priority") ? View.VISIBLE : View.GONE);
-////        views.setImageViewResource(R.id.task_status_btn, status2icon(status));
-////        views.setViewVisibility(R.id.task_annotations, View.GONE);
-////        views.setViewVisibility(R.id.task_annotations_flag, View.GONE);
-////        views.setViewVisibility(R.id.task_start_stop_btn, View.GONE);
-//        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
-//        for (Map.Entry<String, String> field : info.fields.entrySet()) {
-//            if (field.getKey().equalsIgnoreCase("description")) {
-//                // Show title
-//
-//                TextView desc = views.findViewById(R.id.task_description);
-//                desc.setText(json.optString("description"));
-//
-////                views.setTextViewText(R.id.task_description, json.optString("description"));
-//                JSONArray annotations = json.optJSONArray("annotations");
-//                if (null != annotations && annotations.length() > 0) {
-//                    // Have annotations
-//                    views.findViewById(R.id.task_annotations_flag).setVisibility(View.VISIBLE);
-////                    views.setViewVisibility(R.id.task_annotations_flag, View.VISIBLE);
-//                    if ("".equals(field.getValue())) {
-//                        for (int i = 0; i < annotations.length(); i++) {
-//                            JSONObject ann = annotations.optJSONObject(i);
-////                            RemoteViews annView = new RemoteViews(context.getPackageName(), R.layout.item_one_annotation);
-////                            annView.setTextViewText(R.id.task_ann_text, ann.optString("description", "Untitled"));
-////                            annView.setTextViewText(R.id.task_ann_date, asDate(ann.optString("entry"), sharedPref));
-//
-//
-//                            View annView = View.inflate(context, R.layout.item_one_annotation, null);
-//                            ((TextView) annView.findViewById(R.id.task_ann_text)).setText(ann.optString("description", "Untitled"));
-//                            ((TextView) annView.findViewById(R.id.task_ann_date)).setText(asDate(ann.optString("entry"), sharedPref));
-//
-//                            ViewGroup insertPoint = (ViewGroup) views.findViewById(R.id.task_annotations);
-//                            insertPoint.addView(annView, 0, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT));
-//
-////
-////                            views.addV
-////                            views.addView(R.id.task_annotations, annView);
-////                            views.addView
-//                        }
-//                    }
-//                }
-//            }
-////            if (field.getKey().equalsIgnoreCase("id")) {
-////                views.setTextViewText(R.id.task_id, String.format("[%d]", json.optInt("id", -1)));
-////            }
-////            if (field.getKey().equalsIgnoreCase("priority")) {
-////                int index = info.priorities.indexOf(json.optString("priority", ""));
-////                if (index == -1) {
-////                    views.setProgressBar(R.id.task_priority, 0, 0, false);
-////                } else {
-////                    views.setProgressBar(R.id.task_priority, info.priorities.size() - 1,
-////                            info.priorities.size() - index - 1, false);
-////                }
-////            }
-////            if (field.getKey().equalsIgnoreCase("urgency")) {
-////                views.setProgressBar(R.id.task_urgency, urgMax - urgMin, (int) Math.round(json.optDouble("urgency")) - urgMin, false);
-////            }
-////            if (field.getKey().equalsIgnoreCase("due")) {
-////                addLabel(context, result, "due", true, R.drawable.ic_label_due,
-////                        asDate(json.optString("due"), sharedPref));
-////            }
-////            if (field.getKey().equalsIgnoreCase("wait")) {
-////                addLabel(context, result, "wait", true, R.drawable.ic_label_wait,
-////                        asDate(json.optString("wait"), sharedPref));
-////            }
-////            if (field.getKey().equalsIgnoreCase("scheduled")) {
-////                addLabel(context, result, "scheduled", true, R.drawable.ic_label_scheduled,
-////                        asDate(json.optString("scheduled"), sharedPref));
-////            }
-////            if (field.getKey().equalsIgnoreCase("recur")) {
-////                String recur = json.optString("recur");
-////                if (!TextUtils.isEmpty(recur) && info.fields.containsKey("until")) {
-////                    String until = asDate(json.optString("until"), sharedPref);
-////                    if (!TextUtils.isEmpty(until)) {
-////                        recur += String.format(" ~ %s", until);
-////                    }
-////                }
-////                addLabel(context, result, "recur", true, R.drawable.ic_label_recur, recur);
-////            }
-////            if (field.getKey().equalsIgnoreCase("project")) {
-////                addLabel(context, result, "project", false, R.drawable.ic_label_project,
-////                        json.optString("project"));
-////            }
-////            if (field.getKey().equalsIgnoreCase("tags")) {
-////                addLabel(context, result, "tags", false, R.drawable.ic_label_tags, join(", ", array2List(
-////                        json.optJSONArray("tags"))));
-////            }
-////            if (field.getKey().equalsIgnoreCase("start")) {
-////                String started = asDate(json.optString("start"), sharedPref);
-////                boolean isStarted = !TextUtils.isEmpty(started);
-////                if (pending) { // Can be started/stopped
-////                    views.setViewVisibility(R.id.task_start_stop_btn, View.VISIBLE);
-////                    views.setImageViewResource(R.id.task_start_stop_btn, isStarted ? R.drawable.ic_action_stop : R.drawable.ic_action_start);
-////                }
-////            }
-//        }
-//        return result;
-//    }
-
-
-    public static TaskView fill(Context context, JSONObject json, ReportInfo info, int urgMin, int urgMax) {
-//        logger.d("Fill", json, info.fields);
-        String status = json.optString("status", "pending");
-        boolean pending = "pending".equalsIgnoreCase(status);
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.item_one_task);
-        TaskView result = new TaskView();
-        result.removeView = views;
-        views.setViewVisibility(R.id.task_urgency, info.fields.containsKey("urgency") ? View.VISIBLE : View.GONE);
-        views.setViewVisibility(R.id.task_priority, info.fields.containsKey("priority") ? View.VISIBLE : View.GONE);
-        views.setImageViewResource(R.id.task_status_btn, status2icon(status));
-        views.setViewVisibility(R.id.task_annotations, View.GONE);
-        views.setViewVisibility(R.id.task_annotations_flag, View.GONE);
-        views.setViewVisibility(R.id.task_start_stop_btn, View.GONE);
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
-        for (Map.Entry<String, String> field : info.fields.entrySet()) {
-            if (field.getKey().equalsIgnoreCase("description")) {
-                // Show title
-                views.setTextViewText(R.id.task_description, json.optString("description"));
-                JSONArray annotations = json.optJSONArray("annotations");
-                if (null != annotations && annotations.length() > 0) {
-                    // Have annotations
-                    views.setViewVisibility(R.id.task_annotations_flag, View.VISIBLE);
-                    if ("".equals(field.getValue())) {
-                        for (int i = 0; i < annotations.length(); i++) {
-                            JSONObject ann = annotations.optJSONObject(i);
-                            RemoteViews annView = new RemoteViews(context.getPackageName(), R.layout.item_one_annotation);
-                            annView.setTextViewText(R.id.task_ann_text, ann.optString("description", "Untitled"));
-                            annView.setTextViewText(R.id.task_ann_date, asDate(ann.optString("entry"), sharedPref));
-                            views.addView(R.id.task_annotations, annView);
-                        }
-                    }
-                }
-            }
-            if (field.getKey().equalsIgnoreCase("id")) {
-                views.setTextViewText(R.id.task_id, String.format("[%d]", json.optInt("id", -1)));
-            }
-            if (field.getKey().equalsIgnoreCase("priority")) {
-                int index = info.priorities.indexOf(json.optString("priority", ""));
-                if (index == -1) {
-                    views.setProgressBar(R.id.task_priority, 0, 0, false);
-                } else {
-                    views.setProgressBar(R.id.task_priority, info.priorities.size() - 1,
-                            info.priorities.size() - index - 1, false);
-                }
-            }
-            if (field.getKey().equalsIgnoreCase("urgency")) {
-                views.setProgressBar(R.id.task_urgency, urgMax - urgMin, (int) Math.round(json.optDouble("urgency")) - urgMin, false);
-            }
-            if (field.getKey().equalsIgnoreCase("due")) {
-                addLabel(context, result, "due", true, R.drawable.ic_label_due,
-                        asDate(json.optString("due"), sharedPref));
-            }
-            if (field.getKey().equalsIgnoreCase("wait")) {
-                addLabel(context, result, "wait", true, R.drawable.ic_label_wait,
-                        asDate(json.optString("wait"), sharedPref));
-            }
-            if (field.getKey().equalsIgnoreCase("scheduled")) {
-                addLabel(context, result, "scheduled", true, R.drawable.ic_label_scheduled,
-                        asDate(json.optString("scheduled"), sharedPref));
-            }
-            if (field.getKey().equalsIgnoreCase("recur")) {
-                String recur = json.optString("recur");
-                if (!TextUtils.isEmpty(recur) && info.fields.containsKey("until")) {
-                    String until = asDate(json.optString("until"), sharedPref);
-                    if (!TextUtils.isEmpty(until)) {
-                        recur += String.format(" ~ %s", until);
-                    }
-                }
-                addLabel(context, result, "recur", true, R.drawable.ic_label_recur, recur);
-            }
-            if (field.getKey().equalsIgnoreCase("project")) {
-                addLabel(context, result, "project", false, R.drawable.ic_label_project,
-                        json.optString("project"));
-            }
-            if (field.getKey().equalsIgnoreCase("tags")) {
-                addLabel(context, result, "tags", false, R.drawable.ic_label_tags, join(", ", array2List(
-                        json.optJSONArray("tags"))));
-            }
-            if (field.getKey().equalsIgnoreCase("start")) {
-                String started = asDate(json.optString("start"), sharedPref);
-                boolean isStarted = !TextUtils.isEmpty(started);
-                if (pending) { // Can be started/stopped
-                    views.setViewVisibility(R.id.task_start_stop_btn, View.VISIBLE);
-                    views.setImageViewResource(R.id.task_start_stop_btn, isStarted ? R.drawable.ic_action_stop : R.drawable.ic_action_start);
-                }
-            }
-        }
-        return result;
     }
 
 
@@ -715,8 +707,21 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
                 R.layout.item_one_label_right);
         line.setTextViewText(R.id.label_text, text);
         line.setImageViewResource(R.id.label_icon, icon);
-        view.removeView.addView(left ? R.id.task_labels_left : R.id.task_labels_right, line);
+        view.remoteView.addView(left ? R.id.task_labels_left : R.id.task_labels_right, line);
         (left ? view.leftColumn : view.rightColumn).add(code);
+    }
+
+    private static void addLabel(Context context, RemoteViews view, String code, boolean left, int icon, String text) {
+        if (TextUtils.isEmpty(text)) { // No label
+            return;
+        }
+        RemoteViews line = new RemoteViews(context.getPackageName(), left ?
+                R.layout.item_one_label_left :
+                R.layout.item_one_label_right);
+        line.setTextViewText(R.id.label_text, text);
+        line.setImageViewResource(R.id.label_icon, icon);
+        view.addView(left ? R.id.task_labels_left : R.id.task_labels_right, line);
+//        (left ? view.leftColumn : view.rightColumn).add(code);
     }
 
     private static void addLabel(Context context, View view, String code, boolean left, int icon, String text) {
@@ -743,6 +748,11 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
     public static String asDate(String due, SharedPreferences sharedPref) {
         return asDate(due, null, false, sharedPref);
     }
+
+    public static String asDate(String due, DateFormat format, SharedPreferences sharedPref) {
+        return asDate(due, format, false, sharedPref);
+    }
+
 
     public static String asDate(String due, DateFormat format, boolean forceIgnoreMidnightTime, SharedPreferences sharedPref) {
         DateFormat jsonFormat = new SimpleDateFormat("yyyyMMdd'T'HHmmss");
@@ -771,4 +781,5 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
         }
         return null;
     }
+
 }

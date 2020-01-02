@@ -1019,11 +1019,13 @@ public class AccountController {
         if (null != tags) {
             intent.putExtra(App.KEY_EDIT_TAGS, MainListAdapter.join(" ", MainListAdapter.array2List(tags)));
         }
+        DateFormat formattedISO = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(controller.context());
-        intent.putExtra(App.KEY_EDIT_DUE, MainListAdapter.asDate(json.optString("due"), sharedPref));
-        intent.putExtra(App.KEY_EDIT_WAIT, MainListAdapter.asDate(json.optString("wait"), sharedPref));
-        intent.putExtra(App.KEY_EDIT_SCHEDULED, MainListAdapter.asDate(json.optString("scheduled"), sharedPref));
-        intent.putExtra(App.KEY_EDIT_UNTIL, MainListAdapter.asDate(json.optString("until"), sharedPref));
+
+        intent.putExtra(App.KEY_EDIT_DUE, MainListAdapter.asDate(json.optString("due"), formattedISO, sharedPref));
+        intent.putExtra(App.KEY_EDIT_WAIT, MainListAdapter.asDate(json.optString("wait"), formattedISO, sharedPref));
+        intent.putExtra(App.KEY_EDIT_SCHEDULED, MainListAdapter.asDate(json.optString("scheduled"), formattedISO, sharedPref));
+        intent.putExtra(App.KEY_EDIT_UNTIL, MainListAdapter.asDate(json.optString("until"), formattedISO, sharedPref));
         intent.putExtra(App.KEY_EDIT_RECUR, json.optString("recur"));
         return true;
     }
