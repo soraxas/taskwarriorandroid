@@ -73,7 +73,7 @@ public class SwipeOnLongPressExampleAdapter
     private interface Swipeable extends SwipeableItemConstants {
     }
 
-    private final TaskwDataProvider mProvider;
+    private TaskwDataProvider mProvider;
     private EventListener mEventListener;
     private View.OnClickListener mItemViewOnClickListener;
     private View.OnClickListener mSwipeableViewContainerOnClickListener;
@@ -85,7 +85,7 @@ public class SwipeOnLongPressExampleAdapter
     public View cur_taskDetailView;
     public Runnable update_cur_taskDetailView;
 
-    private final MainListAdapter.Accessor<JSONObject, String> uuidAcc = new MainListAdapter.Accessor<JSONObject, String>() {
+    private MainListAdapter.Accessor<JSONObject, String> uuidAcc = new MainListAdapter.Accessor<JSONObject, String>() {
         @Override
         public String get(JSONObject object) {
             return object.optString("uuid");

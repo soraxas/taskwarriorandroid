@@ -16,6 +16,7 @@ package soraxas.taskw.common.data;/*
 
 
 import android.text.TextUtils;
+import android.util.Pair;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -24,10 +25,14 @@ import com.h6ah4i.android.widget.advrecyclerview.swipeable.RecyclerViewSwipeMana
 
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
+import soraxas.taskw.BuildConfig;
 import soraxas.taskw.data.ReportInfo;
 
 
@@ -69,10 +74,50 @@ public class TaskwDataProvider {
 //        data.addAll(list);
 
         mData.clear();
-        for (JSONObject json : list) {
-            final long id = mData.size();
-            final int swipeReaction = RecyclerViewSwipeManager.REACTION_CAN_SWIPE_UP | RecyclerViewSwipeManager.REACTION_CAN_SWIPE_DOWN;
-            mData.add(new TaskwData(id, ITEM_VIEW_TYPE_SECTION_ITEM, json, swipeReaction));
+        boolean separate_projects = true;
+
+        if (!separate_projects) {
+            for (JSONObject json : list) {
+                final long id = mData.size();
+                final int swipeReaction = RecyclerViewSwipeManager.REACTION_CAN_SWIPE_UP | RecyclerViewSwipeManager.REACTION_CAN_SWIPE_DOWN;
+                mData.add(new TaskwData(id, ITEM_VIEW_TYPE_SECTION_ITEM, json, swipeReaction));
+            }
+        } else {
+            // a map of list of tasks (where each list of task is a project)
+            Map<String, Pair<List<TaskwData>, Double>> project =
+                    new HashMap<>();
+            int id = 0;
+            for (JSONObject json : list) {
+                final int swipeReaction = RecyclerViewSwipeManager.REACTION_CAN_SWIPE_UP | RecyclerViewSwipeManager.REACTION_CAN_SWIPE_DOWN;
+                TaskwData data = new TaskwData(id++, ITEM_VIEW_TYPE_SECTION_ITEM, json,
+                        swipeReaction);
+                //
+                String proj = json.optString("project", "");
+                double urgency = json.optDouble("urgency");
+                List<TaskwData> proj_container;
+                if (project.containsKey(proj)) {
+                    Pair<List<TaskwData>, Double> old_pair = project.get(proj);
+                    proj_container = old_pair.first;
+                    if (urgency < old_pair.second)
+                        urgency = old_pair.second;
+                } else {
+                    proj_container = new ArrayList<TaskwData>();
+                }
+                proj_container.add(data);
+                project.put(proj, new Pair<>(proj_container, urgency));
+            }
+            // sort by urgency
+            List<String> sorted_proj = new ArrayList<>(project.keySet());
+            Collections.sort(sorted_proj,
+                    (a, b) -> project.get(a).second.compareTo(project.get(b).second));
+
+            // put back into result
+            for (String proj_key : sorted_proj) {
+                mData.add(new TaskwData(id++, ITEM_VIEW_TYPE_SECTION_HEADER,
+                        proj_key.equals("") ? "[no project]" : proj_key));
+                mData.addAll(project.get(proj_key).first);
+            }
+
         }
 
 
@@ -171,13 +216,20 @@ public class TaskwDataProvider {
 
     public static final class TaskwData {
 
-        private final long mId;
+        private long mId;
         @NonNull
         private final String mText;
-        private final int mViewType;
+        private int mViewType;
         private boolean mPinned;
         public boolean hasAnno;
         public boolean hasStarted;
+
+        TaskwData(long id, int viewType, String description) {
+            if (BuildConfig.DEBUG && viewType != ITEM_VIEW_TYPE_SECTION_HEADER) {
+                throw new AssertionError("Assertion failed");
+            }
+            mText = description;
+        }
 
         TaskwData(long id, int viewType, @NonNull JSONObject json, int swipeReaction) {
             mId = id;
@@ -220,11 +272,11 @@ public class TaskwDataProvider {
             mPinned = pinned;
         }
 
-        public int annoVisibility(){
+        public int annoVisibility() {
             return hasAnno ? View.VISIBLE : View.INVISIBLE;
         }
 
-        public int startedVisibility(){
+        public int startedVisibility() {
             return hasStarted ? View.VISIBLE : View.INVISIBLE;
         }
     }
