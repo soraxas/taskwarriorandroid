@@ -1,16 +1,14 @@
 package soraxas.taskw.ui;
 
 import android.content.Intent;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-
 import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 
 import org.kvj.bravo7.form.FormController;
 import org.kvj.bravo7.form.impl.ViewFinder;
@@ -20,7 +18,6 @@ import org.kvj.bravo7.form.impl.widget.TransientAdapter;
 import org.kvj.bravo7.log.Logger;
 import org.kvj.bravo7.util.Tasks;
 
-import java.io.File;
 import java.io.InputStream;
 
 import soraxas.taskw.App;
@@ -76,7 +73,7 @@ public class TextEditor extends AppCompatActivity {
         }
         if (null == file) {
             // Invalid file
-            controller.messageLong("Invalid file provided");
+            controller.toastMessage("Invalid file provided", true);
             finish();
             return;
         }
@@ -92,7 +89,7 @@ public class TextEditor extends AppCompatActivity {
             public void finish(String result) {
                 logger.d("File loaded:", _uri, result != null);
                 if (null == result) {
-                    controller.messageLong("File IO error");
+                    controller.toastMessage("File IO error", true);
                     TextEditor.this.finish();
                 } else {
                     form.setValue(App.KEY_TEXT_TARGET, _uri.toString(), true);
@@ -161,9 +158,9 @@ public class TextEditor extends AppCompatActivity {
             public void finish(Boolean result) {
                 if (!result) {
                     // Failure
-                    controller.messageLong("File write failure");
+                    controller.toastMessage("File write failure", true);
                 } else {
-                    controller.messageShort("File saved");
+                    controller.toastMessage("File saved", false);
                     setResult(RESULT_OK);
                     TextEditor.this.finish();
                 }

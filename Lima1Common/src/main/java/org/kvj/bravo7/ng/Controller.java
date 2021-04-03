@@ -58,16 +58,6 @@ public class Controller {
         return context;
     }
 
-    public void messageShort(String message) {
-        logger.w("Toast:", message);
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
-    }
-
-    public void messageLong(String message) {
-        logger.w("Toast:", message);
-        Toast.makeText(context, message, Toast.LENGTH_LONG).show();
-    }
-
     public void question(Context context, String message, final Runnable yesHandler, final Runnable noHandler) {
         new AlertDialog.Builder(context)
             .setMessage(message)

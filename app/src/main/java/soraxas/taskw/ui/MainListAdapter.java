@@ -1,11 +1,11 @@
 package soraxas.taskw.ui;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -13,7 +13,6 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RemoteViews;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.cardview.widget.CardView;
 import androidx.preference.PreferenceManager;
@@ -35,13 +34,11 @@ import java.util.TimeZone;
 
 import soraxas.taskw.R;
 import soraxas.taskw.data.ReportInfo;
+import soraxas.taskw.demo_s_longpress.SwipeOnLongPressExampleActivity;
 import soraxas.taskw.utils.DateConverter;
 
 import static soraxas.taskw.ui.TaskDetailActivityKt.showD;
 
-/**
- * Created by vorobyev on 11/19/15.
- */
 public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListViewHolder> {
 
     private final int lastMargin;
@@ -169,16 +166,22 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
 //            }
 //        });
 
-        holder.itemView.findViewById(R.id.task_view).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Context context = holder.itemView.getContext();
-
-                View taskDetailView = inflateTaskDetailView(json, context);
-                bindTaskDetailView(taskDetailView, json);
-                showD(context, taskDetailView);
-            }
-        });
+//        holder.itemView.findViewById(R.id.task_view).setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                Context context = holder.itemView.getContext();
+//
+//                View taskDetailView = inflateTaskDetailView(json, context);
+//                showD(context, taskDetailView);
+//
+//
+//                Intent myIntent = new Intent(context, SwipeOnLongPressExampleActivity.class);
+////                myIntent.putExtra("key", value); //Optional parameters
+//                context.startActivity(myIntent);
+//
+//
+//            }
+//        });
 
 
         // color card that has been started
@@ -189,9 +192,24 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
                 // this has started and is pending
                 if (isStarted) {
                     holder.card.setBackgroundResource(R.color.DarkCyan);
+                    holder.itemView.findViewById(R.id.left).setBackgroundResource(R.color.DarkRed);
+                    ((ImageView) holder.itemView.findViewById(R.id.task_start_stop_btn)).setImageResource(R.drawable.ic_action_stop);
+                } else {
+                    holder.itemView.findViewById(R.id.left).setBackgroundResource(R.color.LightGreen);
+                    ((ImageView) holder.itemView.findViewById(R.id.task_start_stop_btn)).setImageResource(R.drawable.ic_action_start);
                 }
             }
         }
+
+        // bind swipe menu functionality
+
+        holder.itemView.findViewById(R.id.left).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (listener != null)
+                    listener.onStartStop(json);
+            }
+        });
 
 
         View views = holder.itemView;
@@ -338,7 +356,7 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
             }
         }
 
-        if (!hasBottomLabels){
+        if (!hasBottomLabels) {
             // make label match parent
             views.findViewById(R.id.task_description_outer).setLayoutParams(
                     new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
@@ -346,47 +364,57 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
     }
 
 
-    private void bindTaskDetailView(View view, final JSONObject json) {
+    private void bindTaskDetailView(View view, final JSONObject json, Runnable refreshView) {
         final ViewGroup annotations = (ViewGroup) view.findViewById(R.id.task_annotations);
 
         bindLongCopyText(json, view.findViewById(R.id.task_description), json.optString("description"));
         view.findViewById(R.id.task_edit_btn).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (null != listener)
+                if (null != listener) {
                     listener.onEdit(json);
+                    refreshView.run();
+                }
             }
         });
         view.findViewById(R.id.task_status_btn).setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (null != listener)
+                        if (null != listener) {
                             listener.onStatus(json);
+                            refreshView.run();
+                        }
                     }
                 });
         view.findViewById(R.id.task_delete_btn).setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (null != listener)
+                        if (null != listener) {
                             listener.onDelete(json);
+                            refreshView.run();
+                        }
                     }
                 });
         view.findViewById(R.id.task_annotate_btn).setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (null != listener)
+                        if (null != listener) {
                             listener.onAnnotate(json);
+                            refreshView.run();
+                        }
                     }
                 });
         view.findViewById(R.id.task_start_stop_btn).setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (null != listener)
+                        if (null != listener) {
                             listener.onStartStop(json);
+                            refreshView.run();
+                        }
                     }
                 });
         JSONArray annotationsArr = json.optJSONArray("annotations");
@@ -400,17 +428,31 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
                 View deleteBtn = annotations.getChildAt(i).findViewById(R.id.task_ann_delete_btn);
                 if (null != deleteBtn) {
                     deleteBtn.setVisibility(View.VISIBLE);
-                    deleteBtn.setOnClickListener(denotate(json, jsonAnn));
+                    deleteBtn.setOnClickListener(
+                            new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    if (null != listener) {
+                                        listener.onDenotate(json, jsonAnn);
+                                        refreshView.run();
+                                    }
+                                }
+                            }
+                    );
                 }
             }
         }
 
     }
 
+
     private View inflateTaskDetailView(final JSONObject json, Context context) {
 
         View views = View.inflate(context, R.layout.item_one_task_detail, null);
+        return populateTaskDetailView(json, context, views);
+    }
 
+    private View populateTaskDetailView(final JSONObject json, Context context, View views) {
 
         // bottom buttons
 
@@ -473,20 +515,19 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
                     break;
                 case "priority":
                     int index = info.priorities.indexOf(json.optString("priority", ""));
+                    ProgressBar pb_priority = views.findViewById(R.id.task_priority);
                     if (index == -1) {
-                        ProgressBar pb = views.findViewById(R.id.task_priority);
-                        pb.setMax(0);
-                        pb.setProgress(0);
+                        pb_priority.setMax(0);
+                        pb_priority.setProgress(0);
                     } else {
-                        ProgressBar pb = views.findViewById(R.id.task_priority);
-                        pb.setMax(info.priorities.size() - 1);
-                        pb.setProgress(info.priorities.size() - index - 1);
+                        pb_priority.setMax(info.priorities.size() - 1);
+                        pb_priority.setProgress(info.priorities.size() - index - 1);
                     }
                     break;
                 case "urgency":
-                    ProgressBar pb = views.findViewById(R.id.task_urgency);
-                    pb.setMax(urgMax - urgMin);
-                    pb.setProgress((int) Math.round(json.optDouble("urgency")) - urgMin);
+                    ProgressBar pb_urgency = views.findViewById(R.id.task_urgency);
+                    pb_urgency.setMax(urgMax - urgMin);
+                    pb_urgency.setProgress((int) Math.round(json.optDouble("urgency")) - urgMin);
                     break;
                 case "due":
                     addLabel(context, views, "due", true, R.drawable.ic_label_due,
@@ -560,22 +601,11 @@ public class MainListAdapter extends RecyclerView.Adapter<MainListAdapter.ListVi
         }
     }
 
-    private View.OnClickListener denotate(final JSONObject json, final JSONObject annJson) {
-        return new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (null != listener) {
-                    listener.onDenotate(json, annJson);
-                }
-            }
-        };
-    }
-
-    interface Accessor<O, V> {
+    public interface Accessor<O, V> {
         V get(O object);
     }
 
-    private static <O, V> int indexOf(Collection<O> from, Accessor<O, V> acc, V value) {
+    public static <O, V> int indexOf(Collection<O> from, Accessor<O, V> acc, V value) {
         int index = 0;
         for (O item : from) { // $COMMENT
             if (value.equals(acc.get(item))) { // Found

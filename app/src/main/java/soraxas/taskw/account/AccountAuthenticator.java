@@ -140,7 +140,7 @@ public class AccountAuthenticator extends AbstractAccountAuthenticator {
                             .putString(AccountManager.KEY_ACCOUNT_TYPE, App.ACCOUNT_TYPE);
                         finish();
                     } else {
-                        controller.messageLong(err);
+                        controller.toastMessage(err, true);
                     }
                 }
             });

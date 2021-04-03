@@ -86,7 +86,7 @@ public class EditorActivity extends AppCompatActivity {
             ac = controller.accountController(controller.currentAccount());
             if (null == ac) {
                 finish();
-                controller.messageShort("Invalid arguments");
+                controller.toastMessage("Invalid arguments", false);
                 return;
             }
         }
@@ -277,9 +277,9 @@ public class EditorActivity extends AppCompatActivity {
             @Override
             public void finish(String result) {
                 if (!TextUtils.isEmpty(result)) { // Failed
-                    controller.messageLong(result);
+                    controller.toastMessage(result, true);
                 } else {
-                    controller.messageShort("Task added");
+                    controller.toastMessage("Task added", false);
                     EditorActivity.this.setResult(Activity.RESULT_OK);
                     if (addAnother) { // Keep everything except description
                         form.setValue(App.KEY_EDIT_DESCRIPTION, "");

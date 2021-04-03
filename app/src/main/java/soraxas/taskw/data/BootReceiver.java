@@ -19,6 +19,6 @@ public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         logger.i("Application started");
-        controller.messageShort("Auto-sync timers have started");
+        controller.toastMessage("Auto-sync timers have started", false);
     }
 }

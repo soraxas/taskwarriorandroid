@@ -90,7 +90,7 @@ public class RunActivity extends AppCompatActivity {
                 .setupProgressListener(this, (ProgressBar) findViewById(R.id.progress));
         ac = controller.accountController(form);
         if (null == ac) {
-            controller.messageShort("Invalid arguments");
+            controller.toastMessage("Invalid arguments", false);
             finish();
             return;
         }
@@ -102,7 +102,7 @@ public class RunActivity extends AppCompatActivity {
     private void shareAll() {
         CharSequence text = adapter.allText();
         if (TextUtils.isEmpty(text)) { // Error
-            controller.messageShort("Nothing to share");
+            controller.toastMessage("Nothing to share", false);
             return;
         }
         Intent sendIntent = new Intent();
@@ -146,7 +146,7 @@ public class RunActivity extends AppCompatActivity {
     private void copyAll() {
         CharSequence text = adapter.allText();
         if (TextUtils.isEmpty(text)) { // Error
-            controller.messageShort("Nothing to copy");
+            controller.toastMessage("Nothing to copy", false);
             return;
         }
         controller.copyToClipboard(text);
@@ -155,7 +155,7 @@ public class RunActivity extends AppCompatActivity {
     private void run() {
         final String input = form.getValue(App.KEY_RUN_COMMAND);
         if (TextUtils.isEmpty(input)) {
-            controller.messageShort("Input is empty");
+            controller.toastMessage("Input is empty", false);
             return;
         }
         adapter.clear();

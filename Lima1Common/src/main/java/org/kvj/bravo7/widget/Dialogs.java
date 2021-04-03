@@ -59,9 +59,4 @@ public class Dialogs {
         }).show();
     }
 
-    public static void toast(Context context, String message) {
-        Toast toast = Toast.makeText(context, message, Toast.LENGTH_LONG);
-        toast.show();
-    }
-
 }

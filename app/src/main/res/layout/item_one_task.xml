@@ -72,7 +72,7 @@
                         android:longClickable="false"
                         android:clickable="false"
                         android:enabled="false"
-                        android:src="@drawable/ic_status_annotations" />
+                        android:src="@drawable/ic_more" />
 
                 </LinearLayout>
 

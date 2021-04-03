@@ -1,5 +1,6 @@
 package soraxas.taskw.data;
 
+import android.Manifest;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.AccountManagerCallback;
@@ -10,13 +11,15 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.TextUtils;
 
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-
-import android.text.TextUtils;
+import androidx.core.content.ContextCompat;
 
 import org.kvj.bravo7.form.FormController;
 import org.kvj.bravo7.util.Listeners;
@@ -88,8 +91,12 @@ public class Controller extends org.kvj.bravo7.ng.Controller {
     }
 
     public String readFile(File file) {
+        return readFile(openFile(file));
+    }
+
+    public FileInputStream openFile(File file) {
         try {
-            return readFile(new FileInputStream(file));
+            return new FileInputStream(file);
         } catch (FileNotFoundException e) {
             logger.e(e, "Error reading file", file.getAbsolutePath());
         }
@@ -117,7 +124,7 @@ public class Controller extends org.kvj.bravo7.ng.Controller {
     public void copyToClipboard(CharSequence text) {
         ClipData clip = ClipData.newPlainText(text, text);
         getClipboard().setPrimaryClip(clip);
-        messageShort("Copied to clipboard");
+        toastMessage("Copied to clipboard", false);
     }
 
     private ClipboardManager getClipboard() {
@@ -133,7 +140,7 @@ public class Controller extends org.kvj.bravo7.ng.Controller {
         addIntent.setAction("com.android.launcher.action.INSTALL_SHORTCUT");
         try {
             context().sendBroadcast(addIntent);
-            messageShort("Shortcut added");
+            toastMessage("Shortcut added", false);
             return true;
         } catch (Exception e) {
             logger.d(e, "Failed to add shortcut");

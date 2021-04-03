@@ -1,10 +1,12 @@
 package soraxas.taskw.ui;
 
+import android.Manifest;
 import android.accounts.Account;
 import android.app.Activity;
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -18,16 +20,18 @@ import android.view.ViewGroup;
 import android.widget.PopupMenu;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.util.Pair;
 import androidx.drawerlayout.widget.DrawerLayout;
 
-
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
+import com.google.android.material.snackbar.Snackbar;
 
 import org.json.JSONObject;
 import org.kvj.bravo7.form.FormController;
@@ -63,13 +67,12 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
     private ViewGroup filterPanel = null;
     private PtrClassicFrameLayout mPtrFrame;
 
-
     private FormController form = new FormController(new ViewFinder.ActivityViewFinder(this));
     private MainList list = null;
     private Runnable updateTitleAction = new Runnable() {
         @Override
         public void run() {
-            if (null != toolbar) toolbar.setSubtitle(list.reportInfo().description);
+            if (null != toolbar) toolbar.setSubtitle(list.mAdapter.info.description);
         }
     };
     private FloatingActionButton addButton = null;
@@ -112,7 +115,19 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
                         return true;
                     }
                 });
+
         list = (MainList) getSupportFragmentManager().findFragmentById(R.id.list_list_fragment);
+
+
+//        if (savedInstanceState == null) {
+//            getSupportFragmentManager().beginTransaction()
+//                    .add(new ExampleDataProviderFragment(), "data provider")
+//                    .commit();
+//            getSupportFragmentManager().beginTransaction()
+//                    .add(R.id.container, new SwipeOnLongPressExampleFragment(), "list view")
+//                    .commit();
+//        }
+
         addButton = (FloatingActionButton) findViewById(R.id.list_add_btn);
         progressBar = (ProgressBar) findViewById(R.id.progress);
         accountNameDisplay = (TextView) header.findViewById(R.id.list_nav_account_name);
@@ -407,10 +422,10 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
             @Override
             public void finish(String result) {
                 if (null != result) {
-                    controller.messageLong(result);
+                    controller.toastMessage(result, true);
                 } else {
                     if (null != message) { // Show success message
-                        controller.messageShort(message);
+                        controller.toastMessage(message, false);
                     }
                     list.reload();
                 }
@@ -513,7 +528,7 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
         if (ac.intentForEditor(intent, json.optString("uuid"))) { // Valid task
             startActivityForResult(intent, App.EDIT_REQUEST);
         } else {
-            controller.messageShort("Invalid task");
+            controller.toastMessage("Invalid task", false);
         }
     }
 
@@ -539,6 +554,14 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
             accountNameDisplay.setText(ac.name());
             accountNameID.setText(ac.id());
             refreshReports();
+        }
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_DENIED) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
         }
     }
 
@@ -675,7 +698,7 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
             @Override
             public void finish(String result) {
                 if (null != result) {
-                    controller.messageShort(result);
+                    controller.toastMessage(result, false);
                 } else {
                     list.reload();
                 }
@@ -685,7 +708,7 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
 
     private void sync() {
         if (null == ac) {
-            controller.messageShort("Unable to sync");
+            controller.toastMessage("Unable to sync", false);
             return;
         }
         new Tasks.ActivitySimpleTask<String>(this) {
@@ -698,9 +721,9 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
             @Override
             public void finish(String result) {
                 if (null != result) { // Error
-                    controller.messageShort(result);
+                    controller.toastMessage(result, false);
                 } else {
-                    controller.messageShort("Sync success");
+                    controller.toastMessage("Sync success", false);
                     list.reload();
                 }
             }
@@ -719,15 +742,68 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
 
     @Override
     public void onMessage(final String message, final boolean showLong) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (showLong) {
-                    controller.messageLong(message);
-                } else {
-                    controller.messageShort(message);
-                }
-            }
+        runOnUiThread(() -> {
+
+            int length;
+            if (showLong)
+                length = Toast.LENGTH_LONG;
+            else
+                length = Toast.LENGTH_SHORT;
+            Toast.makeText(this, message, length).show();
         });
+    }
+
+    /**
+     * This method will be called when a list item is removed
+     *
+     * @param position The position of the item within data set
+     */
+    public void onItemRemoved(int position) {
+        Snackbar snackbar = Snackbar.make(
+                findViewById(R.id.container),
+                "1 item removed",
+                Snackbar.LENGTH_LONG);
+
+        snackbar.setAction("UNDO", v -> onItemUndoActionClicked());
+        snackbar.setActionTextColor(ContextCompat.getColor(this, R.color.snackbar_action_color_done));
+        snackbar.show();
+    }
+
+    /**
+     * This method will be called when a list item is pinned
+     *
+     * @param position The position of the item within data set
+     */
+    public void onItemPinned(int position) {
+//        final DialogFragment dialog = ItemPinnedMessageDialogFragment.newInstance(position);
+//
+//        getSupportFragmentManager()
+//                .beginTransaction()
+//                .add(dialog, FRAGMENT_TAG_ITEM_PINNED_DIALOG)
+//                .commit();
+    }
+
+    /**
+     * This method will be called when a list item is clicked
+     *
+     * @param position The position of the item within data set
+     */
+    public void onItemClicked(int position) {
+//        final Fragment fragment = getSupportFragmentManager().findFragmentByTag(FRAGMENT_LIST_VIEW);
+//        AbstractDataProvider.Data data = getDataProvider().getItem(position);
+//
+//        if (data.isPinned()) {
+//            // unpin if tapped the pinned item
+//            data.setPinned(false);
+//            ((SwipeOnLongPressExampleFragment) fragment).notifyItemChanged(position);
+//        }
+    }
+
+    private void onItemUndoActionClicked() {
+//        int position = getDataProvider().undoLastRemoval();
+//        if (position >= 0) {
+//            final Fragment fragment = getSupportFragmentManager().findFragmentByTag(FRAGMENT_LIST_VIEW);
+//            ((SwipeOnLongPressExampleFragment) fragment).notifyItemInserted(position);
+//        }
     }
 }

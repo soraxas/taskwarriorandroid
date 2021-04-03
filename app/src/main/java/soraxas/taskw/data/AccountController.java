@@ -6,11 +6,10 @@ import android.content.SharedPreferences;
 import android.net.LocalServerSocket;
 import android.net.LocalSocket;
 import android.net.Uri;
+import android.text.TextUtils;
 
 import androidx.core.app.NotificationCompat;
 import androidx.preference.PreferenceManager;
-
-import android.text.TextUtils;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -37,13 +36,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -57,7 +54,6 @@ import soraxas.taskw.sync.SSLHelper;
 import soraxas.taskw.ui.MainActivity;
 import soraxas.taskw.ui.MainListAdapter;
 import soraxas.taskw.ui.RunActivity;
-import soraxas.taskw.utils.DateConverter;
 
 /**
  * Created by vorobyev on 11/17/15.
@@ -691,6 +687,9 @@ public class AccountController {
             Thread errThread = readStream(p.getErrorStream(), null, err);
             int exitCode = p.waitFor();
             logger.d("Exit code:", exitCode, args);
+            if (exitCode != 0) {
+                controller.toastMessage("task err code: " + exitCode + ", args: " + args, true);
+            }
 //            debug("Execute result:", exitCode);
             if (null != outThread) outThread.join();
             if (null != errThread) errThread.join();
@@ -752,9 +751,10 @@ public class AccountController {
                         fileLogger.logFile(fileFromConfig(config.get("taskd.key"))));
             }
             this.factory = SSLHelper.tlsSocket(
-                    new FileInputStream(fileFromConfig(config.get("taskd.ca"))),
-                    new FileInputStream(fileFromConfig(config.get("taskd.certificate"))),
-                    new FileInputStream(fileFromConfig(config.get("taskd.key"))), trustType);
+                    controller.openFile(fileFromConfig(config.get("taskd.ca"))),
+                    controller.openFile(fileFromConfig(config.get("taskd.certificate"))),
+                    controller.openFile(fileFromConfig(config.get("taskd.key"))),
+                    trustType);
             debug("Credentials loaded");
             logger.d("Connecting to:", this.host, this.port);
             this.socket = new LocalServerSocket(name);

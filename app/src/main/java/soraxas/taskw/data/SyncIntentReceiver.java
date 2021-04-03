@@ -41,7 +41,7 @@ public class SyncIntentReceiver extends BroadcastReceiver {
                 logger.d("Sync from receiver done:", s);
                 if (null != s) {
                     // Failed
-                    controller.messageShort(s);
+                    controller.toastMessage(s, false);
                 }
                 lock.release();
             }

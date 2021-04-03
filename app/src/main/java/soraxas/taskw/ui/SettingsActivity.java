@@ -72,7 +72,8 @@ public class SettingsActivity extends AppCompatActivity {
                         startActivityForResult(intent, App.SETTINGS_REQUEST);
                     } catch (Exception e) {
                         logger.e(e, "Failed to edit file");
-                        controller.messageLong("No suitable plain text editors found");
+                        controller.toastMessage("No suitable plain text editors " +
+                                "found", true);
                     }
                     return true;
                 }

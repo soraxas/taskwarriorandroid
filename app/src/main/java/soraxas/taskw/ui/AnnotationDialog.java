@@ -50,7 +50,7 @@ public class AnnotationDialog extends AppCompatActivity {
     private void doSave() {
         final String text = form.getValue(App.KEY_EDIT_TEXT);
         if (TextUtils.isEmpty(text)) { // Nothing to save
-            controller.messageShort("Input is mandatory");
+            controller.toastMessage("Input is mandatory", false);
             return;
         }
         final AccountController ac = controller.accountController(form.getValue(App.KEY_ACCOUNT, String.class));
@@ -65,7 +65,7 @@ public class AnnotationDialog extends AppCompatActivity {
             @Override
             public void finish(String result) {
                 if (null != result) { // Error
-                    controller.messageShort(result);
+                    controller.toastMessage(result, false);
                 } else {
                     setResult(RESULT_OK);
                     AnnotationDialog.this.finish();
