@@ -15,9 +15,13 @@ package soraxas.taskw.common.data;/*
  */
 
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.text.TextUtils;
 import android.util.Pair;
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
@@ -28,11 +32,16 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import soraxas.taskw.BuildConfig;
+import soraxas.taskw.R;
 import soraxas.taskw.data.ReportInfo;
+
+import static soraxas.taskw.common.Helpers.asDate;
+import static soraxas.taskw.common.Helpers.createLabel;
 
 
 public class TaskwDataProvider {
@@ -231,6 +240,8 @@ public class TaskwDataProvider {
         public boolean hasAnno;
         public boolean hasStarted;
 
+        private JSONObject json;
+
         TaskwData(long id, int viewType, String description) {
             if (BuildConfig.DEBUG && viewType != ITEM_VIEW_TYPE_SECTION_HEADER) {
                 throw new AssertionError("Assertion failed");
@@ -239,15 +250,117 @@ public class TaskwDataProvider {
         }
 
         TaskwData(long id, int viewType, @NonNull JSONObject json, int swipeReaction) {
+            this.json = json;
             mId = id;
             mViewType = viewType;
             mText = makeText(id, json.optString("description"), swipeReaction);
             hasStarted = !TextUtils.isEmpty(json.optString("start"));
             hasAnno = json.optJSONArray("annotations") != null;
+
+//            for (Iterator<String> it = json.keys(); it.hasNext(); ) {
+//                String key = it.next();
+//
+//                switch (key) {
+//                    case "description":
+//                        break;
+//                    case "id":
+//                        ((TextView) views.findViewById(R.id.task_id)).setText(String.format("[%d]", json.optInt("id", -1)));
+//                        break;
+//                    case "priority":
+//                        int index = info.priorities.indexOf(json.optString("priority", ""));
+//                        ProgressBar pb_priority = views.findViewById(R.id.task_priority);
+//                        if (index == -1) {
+//                            pb_priority.setMax(0);
+//                            pb_priority.setProgress(0);
+//                        } else {
+//                            pb_priority.setMax(info.priorities.size() - 1);
+//                            pb_priority.setProgress(info.priorities.size() - index - 1);
+//                        }
+//                        break;
+//                    case "urgency":
+//                        ProgressBar pb_urgency = views.findViewById(R.id.task_urgency);
+//                        pb_urgency.setMax(urgMax - urgMin);
+//                        pb_urgency.setProgress((int) Math.round(json.optDouble("urgency")) - urgMin);
+//                        break;
+//                    case "due":
+//                        addLabel(context, views, "due", true, R.drawable.ic_label_due,
+//                                asDate(json.optString("due"), sharedPref));
+//                        break;
+//                    case "wait":
+//                        addLabel(context, views, "wait", true, R.drawable.ic_label_wait,
+//                                asDate(json.optString("wait"), sharedPref));
+//                        break;
+//                    case "scheduled":
+//                        addLabel(context, views, "scheduled", true, R.drawable.ic_label_scheduled,
+//                                asDate(json.optString("scheduled"), sharedPref));
+//                        break;
+//                    case "recur":
+//                        String recur = json.optString("recur");
+//                        if (!TextUtils.isEmpty(recur) && info.fields.containsKey("until")) {
+//                            String until = asDate(json.optString("until"), sharedPref);
+//                            if (!TextUtils.isEmpty(until)) {
+//                                recur += String.format(" ~ %s", until);
+//                            }
+//                        }
+//                        addLabel(context, views, "recur", true, R.drawable.ic_label_recur, recur);
+//                        break;
+//                    case "tags":
+//                        addLabel(context, views, "tags", false, R.drawable.ic_label_tags, join(", ", array2List(
+//                                json.optJSONArray("tags"))));
+//                        break;
+//                }
+//            }
+        }
+
+        public List<View> buildCalLabels(Context context,
+                                         SharedPreferences sharedPref) {
+            List<View> views = new ArrayList<View>();
+            for (Iterator<String> it = json.keys(); it.hasNext(); ) {
+                String key = it.next();
+                View view;
+                switch (key) {
+                    case "due":
+                        view = createLabel(context, true, R.drawable.ic_label_due,
+                                asDate(json.optString("due"), sharedPref));
+//                        createLabel(context, true, R.drawable.ic_label_due,
+//                                asDate(json.optString("due")));
+                        break;
+                    case "wait":
+                        view = createLabel(context, true, R.drawable.ic_label_wait,
+                                asDate(json.optString("wait"), sharedPref));
+                        break;
+                    case "scheduled":
+                        view = createLabel(context, true,
+                                R.drawable.ic_label_scheduled,
+                                asDate(json.optString("scheduled"), sharedPref));
+                        break;
+                    case "recur":
+                        String recur = json.optString("recur");
+                        String until = json.optString("until");
+                        if (!TextUtils.isEmpty(recur) && !TextUtils.isEmpty(until)) {
+                            until = asDate(until, sharedPref);
+                            if (!TextUtils.isEmpty(until)) {
+                                recur += String.format(" ~ %s", until);
+                            }
+                        }
+                        view = createLabel(context, true, R.drawable.ic_label_recur,
+                                recur);
+                        break;
+                    default:
+                        continue;
+                }
+
+                ((TextView) view.findViewById(R.id.label_text)).setTextSize(12);
+                ((ImageView) view.findViewById(R.id.label_icon)).setScaleX(0.75f);
+                ((ImageView) view.findViewById(R.id.label_icon)).setScaleY(0.75f);
+                views.add(view);
+            }
+            return views;
         }
 
         private static String makeText(long id, String text, int swipeReaction) {
-            return String.valueOf(id) + " - " + text;
+            return text;
+//            return String.valueOf(id) + " - " + text;
         }
 
         public boolean isSectionHeader() {
@@ -280,7 +393,7 @@ public class TaskwDataProvider {
         }
 
         public int annoVisibility() {
-            return hasAnno ? View.VISIBLE : View.INVISIBLE;
+            return hasAnno ? View.VISIBLE : View.GONE;
         }
 
         public int startedVisibility() {

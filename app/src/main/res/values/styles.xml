@@ -53,6 +53,8 @@
         <item name="android:progressDrawable">@drawable/ic_bar</item>
         <item name="android:layout_margin">1dp</item>
         <item name="android:layout_width">5dp</item>
+        <item name="android:maxHeight">80dp</item>
+        <item name="android:minHeight">40dp</item>
     </style>
     <style name="MonospaceInput">
         <item name="android:textAppearance">@style/TextAppearance.AppCompat.Small</item>

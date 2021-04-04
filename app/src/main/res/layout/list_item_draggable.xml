@@ -15,6 +15,7 @@
        limitations under the License.
 -->
 <!-- NOTE: should use FrameLayout or RelativeLayout for parent of the "@id/container" view (for Android 2.3 compatibility) -->
+
 <FrameLayout style="@style/commonListItemStyle"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -29,134 +30,117 @@
         android:layout_height="match_parent"
         android:background="@color/bg_item_normal_state"
         android:clickable="true"
+        android:focusable="true"
         android:foreground="?attr/selectableItemBackground"
         tools:ignore="UselessParent">
 
         <!-- NOTE: the drag handle should set android:clickable=true not to propagate click events to the parent views -->
 
-        <TextView
-            android:id="@+id/task_started_flag"
-            android:layout_width="16dp"
-            android:layout_marginLeft="6dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="top|left"
-            android:textColor="@color/Green"
-            android:text="➤"/>
 
+        <!--            <LinearLayout-->
+<!--                android:layout_width="match_parent"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:longClickable="false"-->
+<!--                android:clickable="false"-->
+<!--                android:enabled="false"-->
+<!--                android:orientation="vertical">-->
 
-        <ProgressBar
-            android:id="@+id/task_priority"
-            style="@style/VerticalBar"
-            android:layout_height="match_parent"
-            android:layout_weight="0"
-            android:max="100"
-            android:progress="20" />
+<!--                    android:minHeight="@dimen/list_item_height"-->
 
-
-
-            <LinearLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/task_description_outer"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:longClickable="false"
                 android:clickable="false"
                 android:enabled="false"
-                android:orientation="vertical">
+                android:orientation="horizontal">
 
-                <LinearLayout
-                    android:id="@+id/task_description_outer"
-                    android:layout_width="match_parent"
+
+            <ProgressBar
+                    android:id="@+id/task_priority"
+                    style="@style/VerticalBar"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0"
+                    android:max="100"
+                    android:progress="20"
+                    tools:layout_editor_absoluteY="1dp"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+            <TextView
+                    android:id="@+id/task_started_flag"
+                    android:layout_width="16dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="top|left"
+                    android:textColor="@color/Green"
+                    android:text="➤"
+                    app:layout_constraintStart_toEndOf="@+id/task_priority" />
+
+
+            <!--                    style="@style/IconImage"-->
+<!--                    android:gravity="center_vertical"-->
+            <TextView
+                    android:id="@+id/task_description"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:minHeight="@dimen/list_item_height"
+                    android:text="Task description"
+
+                    android:textColor="@color/colorText"
+                    tools:ignore="RtlHardcoded"
+                    android:paddingLeft="12dp"
+                    android:paddingRight="4dp"
+                    app:layout_constrainedWidth="true"
+                    app:layout_constraintHorizontal_bias="0.0"
+                    app:layout_constraintVertical_bias="0.0"
+                    app:layout_constraintStart_toEndOf="@+id/task_started_flag"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:layout_marginBottom="8dp"
+                    android:layout_marginTop="8dp"
+                    app:layout_constraintEnd_toStartOf="@+id/task_annotations_flag" />
+
+            <!--                </LinearLayout>-->
+
+
+            <android.widget.ImageView
+                    android:layout_height="wrap_content"
+                    android:id="@+id/task_annotations_flag"
                     android:longClickable="false"
                     android:clickable="false"
+                    android:padding="4dp"
                     android:enabled="false"
-                    android:orientation="horizontal">
+                    android:src="@drawable/ic_more"
+                    tools:layout_conversion_absoluteHeight="40dp"
+                    tools:layout_conversion_absoluteWidth="40dp"
+                    android:layout_width="wrap_content"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintEnd_toStartOf="@+id/task_urgency" />
 
-<!--                    <TextView-->
-<!--                        android:id="@+id/task_description"-->
-<!--                        style="@style/ClickableText"-->
-<!--                        android:layout_width="0dp"-->
-<!--                        android:layout_height="match_parent"-->
-<!--                        android:layout_gravity="center"-->
-<!--                        android:gravity="center_vertical"-->
-<!--                        android:layout_marginLeft="8dp"-->
-<!--                        android:layout_weight="1"-->
-<!--                        android:clickable="false"-->
-<!--                        android:enabled="false"-->
-<!--                        android:text="Task description"-->
-<!--                        android:textAppearance="@style/TextAppearance.AppCompat.Medium"-->
-<!--                        android:textColor="@color/colorText" />-->\
-                    <TextView
-                        android:id="@android:id/text1"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:minHeight="@dimen/list_item_height"
-                        android:layout_gravity="top|left"
-                        android:layout_marginLeft="32dp"
-                        android:layout_marginRight="32dp"
-                        android:gravity="center_vertical"
-                        android:layout_weight="1"
-                        android:text="Task description"
-
-                        android:textColor="@color/colorText"
-                        tools:ignore="RtlHardcoded" />
-
-
-                    <android.widget.ImageView
-                        android:id="@+id/task_annotations_flag"
-                        style="@style/IconImage"
-                        android:layout_gravity="top"
-                        android:longClickable="false"
-                        android:clickable="false"
-                        android:enabled="false"
-                        android:src="@drawable/ic_more" />
-
-                </LinearLayout>
-
-
-                <LinearLayout
-                    android:layout_width="match_parent"
+            <LinearLayout
+                    android:id="@+id/cal_label_container"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:baselineAligned="false"
                     android:longClickable="false"
                     android:clickable="false"
-                    android:enabled="false"
-                    android:orientation="horizontal">
+                    android:enabled="true"
+                    android:orientation="horizontal"
+                    app:layout_constraintTop_toBottomOf="@+id/task_description"
+                    app:layout_constraintStart_toEndOf="@+id/task_started_flag"
+                    android:layout_marginTop="4dp" />
 
-                    <LinearLayout
-                        android:id="@+id/task_labels_left"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="0.5"
-                        android:longClickable="false"
-                        android:clickable="false"
-                        android:enabled="false"
-                        android:orientation="vertical">
-                        <!--<include layout="@layout/item_one_label_left"/>-->
-                    </LinearLayout>
+            <ProgressBar
+                    android:id="@+id/task_urgency"
+                    style="@style/VerticalBar"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0"
+                    android:max="100"
+                    android:progress="50"
+                    tools:layout_editor_absoluteY="1dp"
+                    app:layout_constraintEnd_toEndOf="parent" />
 
-                    <LinearLayout
-                        android:id="@+id/task_labels_right"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="0.5"
-                        android:longClickable="false"
-                        android:clickable="false"
-                        android:enabled="false"
-                        android:orientation="vertical">
-                        <!--<include layout="@layout/item_one_label_right"/>-->
-                    </LinearLayout>
-                </LinearLayout>
-            </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
-
-        <ProgressBar
-            android:id="@+id/task_urgency"
-            style="@style/VerticalBar"
-            android:layout_height="match_parent"
-            android:layout_weight="0"
-            android:max="100"
-            android:progress="50" />
 
     </FrameLayout>
 

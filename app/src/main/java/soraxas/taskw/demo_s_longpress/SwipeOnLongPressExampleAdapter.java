@@ -25,6 +25,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -53,7 +54,7 @@ import soraxas.taskw.R;
 import soraxas.taskw.common.data.TaskwDataProvider;
 import soraxas.taskw.data.ReportInfo;
 
-import static soraxas.taskw.common.Helpers.addLabel;
+import static soraxas.taskw.common.Helpers.addLabelWithInsert;
 import static soraxas.taskw.common.Helpers.array2List;
 import static soraxas.taskw.common.Helpers.asDate;
 import static soraxas.taskw.common.Helpers.join;
@@ -118,13 +119,15 @@ public class SwipeOnLongPressExampleAdapter
         public TextView mTextView;
         public ImageView mAnnoFlag;
         public TextView mStartedFlag;
+        public LinearLayout mCalLabelContainer;
 
         public MyViewHolder(View v) {
             super(v);
             mContainer = v.findViewById(R.id.container);
             mAnnoFlag = v.findViewById(R.id.task_annotations_flag);
             mStartedFlag = v.findViewById(R.id.task_started_flag);
-            mTextView = v.findViewById(android.R.id.text1);
+            mTextView = v.findViewById(R.id.task_description);
+            mCalLabelContainer = v.findViewById(R.id.cal_label_container);
         }
 
         @Override
@@ -229,15 +232,17 @@ public class SwipeOnLongPressExampleAdapter
 
     @Override
     public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
+
         final TaskwDataProvider.TaskwData item = mProvider.getItem(position);
         switch (holder.getItemViewType()) {
             case ITEM_VIEW_TYPE_SECTION_HEADER:
                 final TaskwDataProvider.TaskwData header_item = mProvider.getItem(position);
-
                 // set text
                 holder.mTextView.setText(header_item.getText());
                 break;
             case ITEM_VIEW_TYPE_SECTION_ITEM:
+                // cleanup
+                ((ViewGroup) holder.mCalLabelContainer).removeAllViews();
                 // set listeners
                 // (if the item is *pinned*, click event comes to the itemView)
 //                holder.itemView.setOnClickListener(mItemViewOnClickListener);
@@ -251,6 +256,19 @@ public class SwipeOnLongPressExampleAdapter
                 // set all other attributes
                 holder.mAnnoFlag.setVisibility(item.annoVisibility());
                 holder.mStartedFlag.setVisibility(item.startedVisibility());
+
+                // add calendar tags
+                Context viewContext = holder.mTextView.getContext();
+                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(viewContext);
+                List<View> calLabels = item.buildCalLabels(viewContext, sharedPref);
+                if (calLabels.size() > 0){
+//                    holder.mCalLabelContainer.setVisibility(View.VISIBLE);
+                    holder.mCalLabelContainer.setPadding(35, 0, 35, 0);
+                    for (View v : calLabels) {
+                        holder.mCalLabelContainer.addView(v);
+                    }
+                }
+
 
                 // set background resource (target view ID: container)
                 final SwipeableItemState swipeState = holder.getSwipeState();
@@ -547,13 +565,18 @@ public class SwipeOnLongPressExampleAdapter
                                 ((TextView) annView.findViewById(R.id.task_ann_date)).setText(asDate(ann.optString("entry"), sharedPref));
                                 View deleteBtn = annView.findViewById(R.id.task_ann_delete_btn);
                                 deleteBtn.setVisibility(View.VISIBLE);
-                                deleteBtn.setOnClickListener(
-                                        v -> {
-                                            if (null != listener) {
-                                                listener.onDenotate(json, ann);
-                                            }
-                                        }
-                                );
+                                deleteBtn.setOnClickListener(v -> {
+                                    new AlertDialog.Builder(context)
+                                            .setTitle("Remove annotation")
+                                            .setMessage("Remove annotation '" + ann + "'?")
+//                                                    .setIcon(android.R.drawable.ic_dialog_alert)
+                                            .setPositiveButton(android.R.string.yes, (dialog, whichButton) -> {
+                                                if (null != listener) {
+                                                    listener.onDenotate(json, ann);
+                                                }
+                                            })
+                                            .setNegativeButton(android.R.string.no, null).show();
+                                });
                                 ViewGroup insertPoint = views.findViewById(R.id.task_annotations);
                                 insertPoint.addView(annView, 0, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT));
                             }
@@ -565,31 +588,30 @@ public class SwipeOnLongPressExampleAdapter
                     break;
                 case "priority":
                     int index = info.priorities.indexOf(json.optString("priority", ""));
+                    ProgressBar pb_priority = views.findViewById(R.id.task_priority);
                     if (index == -1) {
-                        ProgressBar pb = views.findViewById(R.id.task_priority);
-                        pb.setMax(0);
-                        pb.setProgress(0);
+                        pb_priority.setMax(0);
+                        pb_priority.setProgress(0);
                     } else {
-                        ProgressBar pb = views.findViewById(R.id.task_priority);
-                        pb.setMax(info.priorities.size() - 1);
-                        pb.setProgress(info.priorities.size() - index - 1);
+                        pb_priority.setMax(info.priorities.size() - 1);
+                        pb_priority.setProgress(info.priorities.size() - index - 1);
                     }
                     break;
                 case "urgency":
-                    ProgressBar pb = views.findViewById(R.id.task_urgency);
-                    pb.setMax(urgMax - urgMin);
-                    pb.setProgress((int) Math.round(json.optDouble("urgency")) - urgMin);
+                    ProgressBar pb_urgency = views.findViewById(R.id.task_urgency);
+                    pb_urgency.setMax(urgMax - urgMin);
+                    pb_urgency.setProgress((int) Math.round(json.optDouble("urgency")) - urgMin);
                     break;
                 case "due":
-                    addLabel(context, views, "due", true, R.drawable.ic_label_due,
+                    addLabelWithInsert(context, views, "due", true, R.drawable.ic_label_due,
                             asDate(json.optString("due"), sharedPref));
                     break;
                 case "wait":
-                    addLabel(context, views, "wait", true, R.drawable.ic_label_wait,
+                    addLabelWithInsert(context, views, "wait", true, R.drawable.ic_label_wait,
                             asDate(json.optString("wait"), sharedPref));
                     break;
                 case "scheduled":
-                    addLabel(context, views, "scheduled", true, R.drawable.ic_label_scheduled,
+                    addLabelWithInsert(context, views, "scheduled", true, R.drawable.ic_label_scheduled,
                             asDate(json.optString("scheduled"), sharedPref));
                     break;
                 case "recur":
@@ -600,14 +622,14 @@ public class SwipeOnLongPressExampleAdapter
                             recur += String.format(" ~ %s", until);
                         }
                     }
-                    addLabel(context, views, "recur", true, R.drawable.ic_label_recur, recur);
+                    addLabelWithInsert(context, views, "recur", true, R.drawable.ic_label_recur, recur);
                     break;
                 case "project":
-                    addLabel(context, views, "project", false, R.drawable.ic_label_project,
+                    addLabelWithInsert(context, views, "project", false, R.drawable.ic_label_project,
                             json.optString("project"));
                     break;
                 case "tags":
-                    addLabel(context, views, "tags", false, R.drawable.ic_label_tags, join(", ", array2List(
+                    addLabelWithInsert(context, views, "tags", false, R.drawable.ic_label_tags, join(", ", array2List(
                             json.optJSONArray("tags"))));
                     break;
                 case "start":

@@ -32,15 +32,21 @@ public class Helpers {
         return R.drawable.ic_status_pending;
     }
 
-    public static void addLabel(Context context, View view, String code, boolean left,
-                                int icon, String text) {
-        if (TextUtils.isEmpty(text)) { // No label
-            return;
-        }
+    public static View createLabel(Context context, boolean left,
+                                   int icon, String text) {
         View line = View.inflate(context, left ?
                 R.layout.item_one_label_left : R.layout.item_one_label_right, null);
         ((TextView) line.findViewById(R.id.label_text)).setText(text);
         ((ImageView) line.findViewById(R.id.label_icon)).setImageResource(icon);
+        return line;
+    }
+
+    public static void addLabelWithInsert(Context context, View view, String code, boolean left,
+                                          int icon, String text) {
+        if (TextUtils.isEmpty(text)) { // No label
+            return;
+        }
+        View line = createLabel(context, left, icon, text);
 
         ViewGroup insertPoint = (ViewGroup) view.findViewById(left ? R.id.task_labels_left : R.id.task_labels_right);
         insertPoint.addView(line, 0, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT));
