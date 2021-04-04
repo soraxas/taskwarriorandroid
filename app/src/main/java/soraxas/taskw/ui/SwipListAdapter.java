@@ -522,7 +522,7 @@ public class SwipeOnLongPressExampleAdapter
 //        data.addAll(list);
 
 
-        notifyDataSetChanged();
+
     }
 
 
