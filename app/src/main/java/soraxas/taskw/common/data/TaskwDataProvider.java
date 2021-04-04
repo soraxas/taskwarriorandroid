@@ -137,37 +137,6 @@ public class TaskwDataProvider {
         }
 
 
-//        protected ReportInfo doInBackground() {
-//            logger.d("Load:", query, report);
-//            return controller.accountController(account).taskReportInfo(report, query);
-//        }
-//        final String atoz = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-//        for (int i = 0; i < 2; i++) {
-//            for (int j = 0; j < atoz.length(); j++) {
-//                final long id = mData.size();
-////                final int viewType = 0;
-//                final int viewType = j % 5 == 0 ? 0 : 1;
-//                String text = Character.toString(atoz.charAt(j));
-//                if (j % 3 == 0) {
-//                    text = "2020-01-04 00:34:04.829 18077-18135";
-//                }
-//                final int swipeReaction = RecyclerViewSwipeManager.REACTION_CAN_SWIPE_UP | RecyclerViewSwipeManager.REACTION_CAN_SWIPE_DOWN;
-//                mData.add(new ConcreteData(id, viewType, text, swipeReaction));
-//            }
-//        }ing atoz = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-//        for (int i = 0; i < 2; i++) {
-//            for (int j = 0; j < atoz.length(); j++) {
-//                final long id = mData.size();
-////                final int viewType = 0;
-//                final int viewType = j % 5 == 0 ? 0 : 1;
-//                String text = Character.toString(atoz.charAt(j));
-//                if (j % 3 == 0) {
-//                    text = "2020-01-04 00:34:04.829 18077-18135";
-//                }
-//                final int swipeReaction = RecyclerViewSwipeManager.REACTION_CAN_SWIPE_UP | RecyclerViewSwipeManager.REACTION_CAN_SWIPE_DOWN;
-//                mData.add(new ConcreteData(id, viewType, text, swipeReaction));
-//            }
-//        }
     }
 
     public int getCount() {

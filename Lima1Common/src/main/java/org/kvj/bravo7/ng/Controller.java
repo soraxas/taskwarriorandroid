@@ -37,7 +37,7 @@ public class Controller {
         this.context = context;
     }
 
-    protected void init() {}
+    public void init() {}
 
     public Configurator settings() {
         return new Configurator(new SharedPreferencesConfigurable(context, PreferenceManager.getDefaultSharedPreferences(context)));
