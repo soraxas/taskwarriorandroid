@@ -437,7 +437,6 @@ public class MainList extends Fragment {
 
             @Override
             public void finish(List<JSONObject> result) {
-                mAdapter.data = result;
                 mDataProvider.update_report_info(result, mAdapter.info);
 
 //                mWindowAttachCount
@@ -453,7 +452,7 @@ public class MainList extends Fragment {
     }
 
     public void listener(MainListAdapter.ItemListener listener) {
-        this.mAdapter.listener = listener;
+        this.mAdapter.listener = listene`r;
     }
 
 

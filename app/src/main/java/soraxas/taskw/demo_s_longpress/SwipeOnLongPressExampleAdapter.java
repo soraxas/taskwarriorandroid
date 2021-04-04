@@ -78,7 +78,6 @@ public class SwipeOnLongPressExampleAdapter
     private View.OnClickListener mItemViewOnClickListener;
     private View.OnClickListener mSwipeableViewContainerOnClickListener;
     public ReportInfo info = null;
-    public List<JSONObject> data = new ArrayList<>();
     private int urgMin;
     private int urgMax;
 
@@ -135,8 +134,8 @@ public class SwipeOnLongPressExampleAdapter
 
     private JSONObject getJsonWithTaskId(int id) {
         JSONObject json = null;
-        for (JSONObject j : data) {
-            if (j.optInt("id") == id) {
+        for (JSONObject j : mProvider.jsonData) {
+            if (j != null && j.optInt("id") == id) {
                 json = j;
                 break;
             }
@@ -145,7 +144,7 @@ public class SwipeOnLongPressExampleAdapter
     }
 
     private void onItemViewClick(View v, int position, boolean pinned) {
-        final JSONObject json = data.get(position);
+        final JSONObject json = mProvider.jsonData.get(position);
         int task_id = json.optInt("id");
 
 

@@ -55,6 +55,8 @@ import soraxas.taskw.R;
 import soraxas.taskw.data.AccountController;
 import soraxas.taskw.data.Controller;
 
+import static soraxas.taskw.ui.TaskDetailActivityKt.showD;
+
 public class MainActivity extends AppCompatActivity implements Controller.ToastMessageListener {
 
     Logger logger = Logger.forInstance(this);
@@ -506,6 +508,7 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
     private void add(Pair<String, String>... pairs) {
         if (null == ac) return;
         Intent intent = new Intent(this, EditorActivity.class);
+        showD(this, View.inflate(this, R.layout.activity_editor, null));
         ac.intentForEditor(intent, null);
         if (null != pairs) {
             Bundle data = new Bundle();

@@ -28,7 +28,6 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -41,11 +40,13 @@ public class TaskwDataProvider {
     public static final int ITEM_VIEW_TYPE_SECTION_ITEM = 1;
 
     private List<TaskwData> mData;
+    public List<JSONObject> jsonData;
     private TaskwData mLastRemovedData;
     private int mLastRemovedPosition = -1;
 
     public TaskwDataProvider() {
-        mData = new LinkedList<>();
+        mData = new ArrayList<>();
+        jsonData = new ArrayList<>();
     }
 
     public void update_report_info(List<JSONObject> list, ReportInfo info) {
@@ -74,6 +75,7 @@ public class TaskwDataProvider {
 //        data.addAll(list);
 
         mData.clear();
+        jsonData.clear();
         boolean separate_projects = true;
 
         if (!separate_projects) {
@@ -81,29 +83,27 @@ public class TaskwDataProvider {
                 final long id = mData.size();
                 final int swipeReaction = RecyclerViewSwipeManager.REACTION_CAN_SWIPE_UP | RecyclerViewSwipeManager.REACTION_CAN_SWIPE_DOWN;
                 mData.add(new TaskwData(id, ITEM_VIEW_TYPE_SECTION_ITEM, json, swipeReaction));
+                jsonData.add(json);
             }
         } else {
             // a map of list of tasks (where each list of task is a project)
-            Map<String, Pair<List<TaskwData>, Double>> project =
+            Map<String, Pair<List<JSONObject>, Double>> project =
                     new HashMap<>();
             int id = 0;
             for (JSONObject json : list) {
-                final int swipeReaction = RecyclerViewSwipeManager.REACTION_CAN_SWIPE_UP | RecyclerViewSwipeManager.REACTION_CAN_SWIPE_DOWN;
-                TaskwData data = new TaskwData(id++, ITEM_VIEW_TYPE_SECTION_ITEM, json,
-                        swipeReaction);
                 //
                 String proj = json.optString("project", "");
                 double urgency = json.optDouble("urgency");
-                List<TaskwData> proj_container;
+                List<JSONObject> proj_container;
                 if (project.containsKey(proj)) {
-                    Pair<List<TaskwData>, Double> old_pair = project.get(proj);
+                    Pair<List<JSONObject>, Double> old_pair = project.get(proj);
                     proj_container = old_pair.first;
                     if (urgency < old_pair.second)
                         urgency = old_pair.second;
                 } else {
-                    proj_container = new ArrayList<TaskwData>();
+                    proj_container = new ArrayList<>();
                 }
-                proj_container.add(data);
+                proj_container.add(json);
                 project.put(proj, new Pair<>(proj_container, urgency));
             }
             // sort by urgency
@@ -115,7 +115,14 @@ public class TaskwDataProvider {
             for (String proj_key : sorted_proj) {
                 mData.add(new TaskwData(id++, ITEM_VIEW_TYPE_SECTION_HEADER,
                         proj_key.equals("") ? "[no project]" : proj_key));
-                mData.addAll(project.get(proj_key).first);
+                jsonData.add(null);  // this is a header
+                for (JSONObject json : project.get(proj_key).first) {
+                    final int swipeReaction = RecyclerViewSwipeManager.REACTION_CAN_SWIPE_UP | RecyclerViewSwipeManager.REACTION_CAN_SWIPE_DOWN;
+                    TaskwData data = new TaskwData(id++, ITEM_VIEW_TYPE_SECTION_ITEM,
+                            json, swipeReaction);
+                    mData.add(data);
+                    jsonData.add(json);
+                }
             }
 
         }
