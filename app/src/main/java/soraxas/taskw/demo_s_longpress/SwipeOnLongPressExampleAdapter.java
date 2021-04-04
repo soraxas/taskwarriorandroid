@@ -420,7 +420,7 @@ public class SwipeOnLongPressExampleAdapter
             super.onSlideAnimationEnd();
 
             if (mSetPinned && mAdapter.mEventListener != null) {
-                mAdapter.mEventListener.onItemPinned(mPosition);
+//                mAdapter.mEventListener.onItemPinned(mPosition);
             }
         }
 
@@ -444,9 +444,13 @@ public class SwipeOnLongPressExampleAdapter
         @Override
         protected void onPerformAction() {
             super.onPerformAction();
+            if (null != mAdapter.listener) {
+                // mark as done
+                mAdapter.listener.onStatus(mAdapter.mProvider.getItem(mPosition).json);
+                mAdapter.mProvider.removeItem(mPosition);
+                mAdapter.notifyItemRemoved(mPosition);
+            }
 
-            mAdapter.mProvider.removeItem(mPosition);
-            mAdapter.notifyItemRemoved(mPosition);
         }
 
         @Override
@@ -454,7 +458,7 @@ public class SwipeOnLongPressExampleAdapter
             super.onSlideAnimationEnd();
 
             if (mAdapter.mEventListener != null) {
-                mAdapter.mEventListener.onItemRemoved(mPosition);
+//                mAdapter.mEventListener.onItemRemoved(mPosition);
             }
         }
 
