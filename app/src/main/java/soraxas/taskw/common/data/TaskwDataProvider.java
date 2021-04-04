@@ -240,7 +240,7 @@ public class TaskwDataProvider {
         public boolean hasAnno;
         public boolean hasStarted;
 
-        private JSONObject json;
+        public JSONObject json;
 
         TaskwData(long id, int viewType, String description) {
             if (BuildConfig.DEBUG && viewType != ITEM_VIEW_TYPE_SECTION_HEADER) {
@@ -349,10 +349,6 @@ public class TaskwDataProvider {
                     default:
                         continue;
                 }
-
-                ((TextView) view.findViewById(R.id.label_text)).setTextSize(12);
-                ((ImageView) view.findViewById(R.id.label_icon)).setScaleX(0.75f);
-                ((ImageView) view.findViewById(R.id.label_icon)).setScaleY(0.75f);
                 views.add(view);
             }
             return views;

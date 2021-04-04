@@ -57,6 +57,7 @@ import soraxas.taskw.data.ReportInfo;
 import static soraxas.taskw.common.Helpers.addLabelWithInsert;
 import static soraxas.taskw.common.Helpers.array2List;
 import static soraxas.taskw.common.Helpers.asDate;
+import static soraxas.taskw.common.Helpers.createLabel;
 import static soraxas.taskw.common.Helpers.join;
 import static soraxas.taskw.common.Helpers.status2icon;
 import static soraxas.taskw.common.data.TaskwDataProvider.ITEM_VIEW_TYPE_SECTION_HEADER;
@@ -120,6 +121,7 @@ public class SwipeOnLongPressExampleAdapter
         public ImageView mAnnoFlag;
         public TextView mStartedFlag;
         public LinearLayout mCalLabelContainer;
+        public LinearLayout mTagsLabelContainer;
 
         public MyViewHolder(View v) {
             super(v);
@@ -128,6 +130,7 @@ public class SwipeOnLongPressExampleAdapter
             mStartedFlag = v.findViewById(R.id.task_started_flag);
             mTextView = v.findViewById(R.id.task_description);
             mCalLabelContainer = v.findViewById(R.id.cal_label_container);
+            mTagsLabelContainer = v.findViewById(R.id.tags_label_container);
         }
 
         @Override
@@ -229,6 +232,12 @@ public class SwipeOnLongPressExampleAdapter
         return new MyViewHolder(v);
     }
 
+    private void update_label_left_right_attr(View view) {
+        ((TextView) view.findViewById(R.id.label_text)).setTextSize(12);
+        ImageView icon = view.findViewById(R.id.label_icon);
+        icon.setScaleX(0.7f);
+        icon.setScaleY(0.7f);
+    }
 
     @Override
     public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
@@ -243,6 +252,7 @@ public class SwipeOnLongPressExampleAdapter
             case ITEM_VIEW_TYPE_SECTION_ITEM:
                 // cleanup
                 ((ViewGroup) holder.mCalLabelContainer).removeAllViews();
+                ((ViewGroup) holder.mTagsLabelContainer).removeAllViews();
                 // set listeners
                 // (if the item is *pinned*, click event comes to the itemView)
 //                holder.itemView.setOnClickListener(mItemViewOnClickListener);
@@ -257,16 +267,25 @@ public class SwipeOnLongPressExampleAdapter
                 holder.mAnnoFlag.setVisibility(item.annoVisibility());
                 holder.mStartedFlag.setVisibility(item.startedVisibility());
 
-                // add calendar tags
+                // add calendar labels
                 Context viewContext = holder.mTextView.getContext();
                 SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(viewContext);
                 List<View> calLabels = item.buildCalLabels(viewContext, sharedPref);
-                if (calLabels.size() > 0){
+                if (calLabels.size() > 0) {
 //                    holder.mCalLabelContainer.setVisibility(View.VISIBLE);
-                    holder.mCalLabelContainer.setPadding(35, 0, 35, 0);
+//                    holder.mCalLabelContainer.setPadding(35, 0, 35, 0);
                     for (View v : calLabels) {
+                        update_label_left_right_attr(v);
                         holder.mCalLabelContainer.addView(v);
                     }
+                }
+                // add tags labels
+                JSONArray tags = item.json.optJSONArray("tags");
+                if (tags != null) {
+                    View v = createLabel(viewContext, false,
+                            R.drawable.ic_label_tags, join(", ", array2List(tags)));
+                    update_label_left_right_attr(v);
+                    holder.mTagsLabelContainer.addView(v);
                 }
 
 

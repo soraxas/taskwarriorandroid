@@ -129,6 +129,21 @@
                     app:layout_constraintStart_toEndOf="@+id/task_started_flag"
                     android:layout_marginTop="4dp" />
 
+            <LinearLayout
+                    android:id="@+id/tags_label_container"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:baselineAligned="false"
+                    android:longClickable="false"
+                    android:clickable="false"
+                    android:enabled="true"
+                    android:orientation="horizontal"
+                    app:layout_constraintTop_toBottomOf="@+id/task_description"
+                    app:layout_constraintStart_toEndOf="@+id/cal_label_container"
+                    android:layout_marginTop="4dp"
+                    app:layout_constraintHorizontal_bias="1.0"
+                    app:layout_constraintEnd_toEndOf="@+id/task_annotations_flag" />
+
             <ProgressBar
                     android:id="@+id/task_urgency"
                     style="@style/VerticalBar"
