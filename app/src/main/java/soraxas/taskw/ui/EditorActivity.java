@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 
 import soraxas.taskw.App;
+import soraxas.taskw.common.Helpers;
 import soraxas.taskw.utils.AutoTagsSuggestAdapter;
 import soraxas.taskw.R;
 import soraxas.taskw.data.AccountController;
@@ -253,7 +254,7 @@ public class EditorActivity extends AppCompatActivity {
                 List<String> tags = new ArrayList<>();
                 String tagsStr = form.getValue(App.KEY_EDIT_TAGS);
                 Collections.addAll(tags, tagsStr.split(" "));
-                changes.add(String.format("tags:%s", MainListAdapter.join(",", tags)));
+                changes.add(String.format("tags:%s", Helpers.join(",", tags)));
             }
         }
         String uuid = form.getValue(App.KEY_EDIT_UUID);

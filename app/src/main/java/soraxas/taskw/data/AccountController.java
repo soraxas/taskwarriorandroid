@@ -21,7 +21,6 @@ import org.kvj.bravo7.util.Tasks;
 
 import java.io.CharArrayWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -50,9 +49,9 @@ import javax.net.ssl.SSLSocketFactory;
 
 import soraxas.taskw.App;
 import soraxas.taskw.R;
+import soraxas.taskw.common.Helpers;
 import soraxas.taskw.sync.SSLHelper;
 import soraxas.taskw.ui.MainActivity;
-import soraxas.taskw.ui.MainListAdapter;
 import soraxas.taskw.ui.RunActivity;
 
 /**
@@ -1017,15 +1016,21 @@ public class AccountController {
         intent.putExtra(App.KEY_EDIT_PROJECT, json.optString("project"));
         JSONArray tags = json.optJSONArray("tags");
         if (null != tags) {
-            intent.putExtra(App.KEY_EDIT_TAGS, MainListAdapter.join(" ", MainListAdapter.array2List(tags)));
+            intent.putExtra(App.KEY_EDIT_TAGS, Helpers.join(" ",
+                    Helpers.array2List(tags)));
         }
         DateFormat formattedISO = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(controller.context());
 
-        intent.putExtra(App.KEY_EDIT_DUE, MainListAdapter.asDate(json.optString("due"), formattedISO, sharedPref));
-        intent.putExtra(App.KEY_EDIT_WAIT, MainListAdapter.asDate(json.optString("wait"), formattedISO, sharedPref));
-        intent.putExtra(App.KEY_EDIT_SCHEDULED, MainListAdapter.asDate(json.optString("scheduled"), formattedISO, sharedPref));
-        intent.putExtra(App.KEY_EDIT_UNTIL, MainListAdapter.asDate(json.optString("until"), formattedISO, sharedPref));
+        intent.putExtra(App.KEY_EDIT_DUE, Helpers.asDate(json.optString("due"),
+                formattedISO, sharedPref));
+        intent.putExtra(App.KEY_EDIT_WAIT, Helpers.asDate(json.optString("wait"),
+                formattedISO, sharedPref));
+        intent.putExtra(App.KEY_EDIT_SCHEDULED, Helpers.asDate(json.optString(
+                "scheduled"),
+                formattedISO, sharedPref));
+        intent.putExtra(App.KEY_EDIT_UNTIL, Helpers.asDate(json.optString("until"),
+                formattedISO, sharedPref));
         intent.putExtra(App.KEY_EDIT_RECUR, json.optString("recur"));
         return true;
     }

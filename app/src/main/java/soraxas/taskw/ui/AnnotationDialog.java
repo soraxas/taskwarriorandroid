@@ -33,18 +33,8 @@ public class AnnotationDialog extends AppCompatActivity {
         form.add(new TransientAdapter<>(new StringBundleAdapter(), null), App.KEY_EDIT_UUID);
         form.add(new TextViewCharSequenceAdapter(R.id.ann_text, ""), App.KEY_EDIT_TEXT);
         form.load(this, savedInstanceState);
-        findViewById(R.id.ann_cancel_btn).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                doFinish();
-            }
-        });
-        findViewById(R.id.ann_ok_btn).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                doSave();
-            }
-        });
+        findViewById(R.id.ann_cancel_btn).setOnClickListener(v -> doFinish());
+        findViewById(R.id.ann_ok_btn).setOnClickListener(v -> doSave());
     }
 
     private void doSave() {

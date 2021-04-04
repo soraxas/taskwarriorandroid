@@ -52,8 +52,10 @@ import in.srain.cube.views.ptr.PtrFrameLayout;
 import in.srain.cube.views.ptr.PtrHandler;
 import soraxas.taskw.App;
 import soraxas.taskw.R;
+import soraxas.taskw.common.Helpers;
 import soraxas.taskw.data.AccountController;
 import soraxas.taskw.data.Controller;
+import soraxas.taskw.demo_s_longpress.SwipeOnLongPressExampleAdapter;
 
 import static soraxas.taskw.ui.TaskDetailActivityKt.showD;
 
@@ -152,7 +154,7 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
                 showAccountMenu(v);
             }
         });
-        list.listener(new MainListAdapter.ItemListener() {
+        list.listener(new SwipeOnLongPressExampleAdapter.ItemListener() {
             @Override
             public void onEdit(JSONObject json) {
                 // Start editor
@@ -201,8 +203,8 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
                         return;
                     }
                     if ("tags".equals(type)) {
-                        String tags = MainListAdapter.join(" +",
-                                MainListAdapter.array2List(json.optJSONArray("tags")));
+                        String tags = Helpers.join(" +",
+                                Helpers.array2List(json.optJSONArray("tags")));
                         query += " +" + tags;
                         intent.putExtra(App.KEY_QUERY, query.trim());
                         startActivity(intent);
@@ -215,25 +217,25 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
                     add(Pair.create(App.KEY_EDIT_PROJECT, json.optString("project")));
                 }
                 if ("tags".equals(type)) {
-                    String tags = MainListAdapter.join(" ",
-                            MainListAdapter.array2List(json.optJSONArray("tags")));
+                    String tags = Helpers.join(" ",
+                            Helpers.array2List(json.optJSONArray("tags")));
                     add(Pair.create(App.KEY_EDIT_TAGS, tags));
                 }
                 if ("due".equals(type)) {
                     add(Pair.create(App.KEY_EDIT_DUE,
-                            MainListAdapter.asDate(json.optString("due"), null)));
+                            Helpers.asDate(json.optString("due"), null)));
                 }
                 if ("wait".equals(type)) {
                     add(Pair.create(App.KEY_EDIT_WAIT,
-                            MainListAdapter.asDate(json.optString("wait"), null)));
+                            Helpers.asDate(json.optString("wait"), null)));
                 }
                 if ("scheduled".equals(type)) {
                     add(Pair.create(App.KEY_EDIT_SCHEDULED,
-                            MainListAdapter.asDate(json.optString("scheduled"), null)));
+                            Helpers.asDate(json.optString("scheduled"), null)));
                 }
                 if ("recur".equals(type)) {
                     add(Pair.create(App.KEY_EDIT_UNTIL,
-                            MainListAdapter.asDate(json.optString("until"), null)),
+                            Helpers.asDate(json.optString("until"), null)),
                             Pair.create(App.KEY_EDIT_RECUR, json.optString("recur")));
                 }
             }

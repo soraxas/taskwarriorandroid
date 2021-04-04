@@ -15,6 +15,7 @@ package soraxas.taskw.demo_s_longpress;/*
  */
 
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.TextUtils;
@@ -45,14 +46,12 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.kvj.bravo7.log.Logger;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import soraxas.taskw.R;
 import soraxas.taskw.common.data.TaskwDataProvider;
 import soraxas.taskw.data.ReportInfo;
-import soraxas.taskw.ui.MainListAdapter;
 
 import static soraxas.taskw.common.Helpers.addLabel;
 import static soraxas.taskw.common.Helpers.array2List;
@@ -84,14 +83,8 @@ public class SwipeOnLongPressExampleAdapter
     public View cur_taskDetailView;
     public Runnable update_cur_taskDetailView;
 
-    private MainListAdapter.Accessor<JSONObject, String> uuidAcc = new MainListAdapter.Accessor<JSONObject, String>() {
-        @Override
-        public String get(JSONObject object) {
-            return object.optString("uuid");
-        }
-    };
     static Logger logger = Logger.forClass(SwipeOnLongPressExampleAdapter.class);
-    public MainListAdapter.ItemListener listener = null;
+    public ItemListener listener = null;
 
 
     public interface EventListener {
@@ -100,6 +93,24 @@ public class SwipeOnLongPressExampleAdapter
         void onItemPinned(int position);
 
         void onItemViewClicked(View v, boolean pinned);
+    }
+
+    public interface ItemListener {
+        public void onEdit(JSONObject json);
+
+        public void onStatus(JSONObject json);
+
+        public void onDelete(JSONObject json);
+
+        public void onAnnotate(JSONObject json);
+
+        public void onStartStop(JSONObject json);
+
+        public void onDenotate(JSONObject json, JSONObject annJson);
+
+        public void onCopyText(JSONObject json, String text);
+
+        public void onLabelClick(JSONObject json, String type, boolean longClick);
     }
 
     public static class MyViewHolder extends AbstractSwipeableItemViewHolder {
@@ -626,9 +637,19 @@ public class SwipeOnLongPressExampleAdapter
         });
         views.findViewById(R.id.task_delete_btn).setOnClickListener(
                 v -> {
-                    if (null != listener) {
-                        listener.onDelete(json);
-                    }
+//                    if (null != listener) {
+//                        listener.onDelete(json);
+//                    }
+                    new AlertDialog.Builder(context)
+                            .setTitle("Delete task")
+                            .setMessage("Do you really want to delete this task?")
+                            .setIcon(android.R.drawable.ic_dialog_alert)
+                            .setPositiveButton(android.R.string.yes, (dialog, whichButton) -> {
+                                if (null != listener) {
+                                    listener.onDelete(json);
+                                }
+                            })
+                            .setNegativeButton(android.R.string.no, null).show();
                 });
         views.findViewById(R.id.task_annotate_btn).setOnClickListener(
                 v -> {

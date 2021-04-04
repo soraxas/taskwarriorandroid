@@ -374,27 +374,6 @@ public class MainList extends Fragment {
         mRecyclerViewSwipeManager.attachRecyclerView(mRecyclerView);
     }
 
-    private void onItemViewClick(View v, boolean pinned) {
-        int position = mRecyclerView.getChildAdapterPosition(v);
-        if (position != RecyclerView.NO_POSITION) {
-            ((MainActivity) getActivity()).onItemClicked(position);
-        }
-
-
-//                Context context = holder.itemView.getContext();
-//
-//                View taskDetailView = inflateTaskDetailView(json, context);
-//                bindTaskDetailView(taskDetailView, json);
-//                showD(context, taskDetailView);
-
-
-//        Context context = getContext();
-//        Intent myIntent = new Intent(context, SwipeOnLongPressExampleActivity.class);
-////                myIntent.putExtra("key", value); //Optional parameters
-//        context.startActivity(myIntent);
-
-
-    }
 
     private boolean supportsViewElevation() {
         return (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP);
@@ -451,8 +430,8 @@ public class MainList extends Fragment {
 
     }
 
-    public void listener(MainListAdapter.ItemListener listener) {
-        this.mAdapter.listener = listene`r;
+    public void listener(SwipeOnLongPressExampleAdapter.ItemListener listener) {
+        this.mAdapter.listener = listener;
     }
 
 

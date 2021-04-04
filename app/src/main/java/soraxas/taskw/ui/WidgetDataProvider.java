@@ -11,18 +11,14 @@ import androidx.preference.PreferenceManager;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.TimeZone;
 
 import soraxas.taskw.App;
 import soraxas.taskw.R;
+import soraxas.taskw.common.Helpers;
 import soraxas.taskw.data.AccountController;
 import soraxas.taskw.data.Controller;
 import soraxas.taskw.data.ReportInfo;
-import soraxas.taskw.utils.DateConverter;
 
 
 public class WidgetDataProvider implements RemoteViewsService.RemoteViewsFactory {
@@ -103,7 +99,8 @@ public class WidgetDataProvider implements RemoteViewsService.RemoteViewsFactory
             remoteViews.addView(R.id.widget_item_container, date_label);
 
             SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
-            remoteViews.setTextViewText(R.id.label_text, MainListAdapter.asDate(due, true, sharedPref));
+            remoteViews.setTextViewText(R.id.label_text, Helpers.asDate(due, true,
+                    sharedPref));
         }
 
         try {
