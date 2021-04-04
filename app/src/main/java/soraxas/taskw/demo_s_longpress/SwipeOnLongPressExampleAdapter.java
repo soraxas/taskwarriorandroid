@@ -33,6 +33,7 @@ import androidx.annotation.NonNull;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.snackbar.Snackbar;
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.SwipeableItemAdapter;
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.SwipeableItemConstants;
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.SwipeableItemState;
@@ -538,6 +539,11 @@ public class SwipeOnLongPressExampleAdapter
         int urgMax = 100;
         // TODO fix me
 
+//        Snackbar.make(views, "Subscription Deleted", Snackbar.LENGTH_LONG)
+//                .setAction("Undo",  a -> {
+////                            activeSubs.add(position-1, tmp)
+////                            adapter!!.notifyDataSetChanged()
+//                });
 
         ///////////////////////////
 

@@ -47,7 +47,7 @@ public class MainList extends Fragment {
     private String account = null;
 
 
-    private RecyclerView mRecyclerView;
+    public RecyclerView mRecyclerView;
     private RecyclerView.LayoutManager mLayoutManager;
     public SwipeOnLongPressExampleAdapter mAdapter;
     private RecyclerView.Adapter mWrappedAdapter;

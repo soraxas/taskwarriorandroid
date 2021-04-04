@@ -8,6 +8,7 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
@@ -102,6 +103,14 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
         }
     };
 
+    public void show_undo_msg(String message) {
+        View parentLayout = findViewById(R.id.coordinator_layout);
+        Snackbar.make(parentLayout, message, Snackbar.LENGTH_INDEFINITE)
+                .setAction("UNDO", view -> undo())
+                .setActionTextColor(getResources().getColor(android.R.color.holo_red_light))
+                .show();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -112,15 +121,10 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
         navigation = (NavigationView) findViewById(R.id.list_navigation);
         header = (ViewGroup) navigation.inflateHeaderView(R.layout.item_nav_header);
         navigation.setNavigationItemSelectedListener(
-                new NavigationView.OnNavigationItemSelectedListener() {
-                    @Override
-                    public boolean onNavigationItemSelected(MenuItem item) {
-                        onNavigationMenu(item);
-                        return true;
-                    }
+                item -> {
+                    onNavigationMenu(item);
+                    return true;
                 });
-
-        list = (MainList) getSupportFragmentManager().findFragmentById(R.id.list_list_fragment);
 
 
 //        if (savedInstanceState == null) {
@@ -132,6 +136,31 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
 //                    .commit();
 //        }
 
+
+//        // register the extended floating action Button
+//        final ExtendedFloatingActionButton extendedFloatingActionButton = findViewById(R.id.extFloatingActionButton);
+//        nestedScrollView.setOnScrollChangeListener(new NestedScrollView.OnScrollChangeListener() {
+//            @Override
+//            public void onScrollChange(NestedScrollView v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+//                // the delay of the extension of the FAB is set for 12 items
+//                if (scrollY > oldScrollY + 12 && extendedFloatingActionButton.isExtended()) {
+//                    extendedFloatingActionButton.shrink();
+//                }
+//
+//                // the delay of the extension of the FAB is set for 12 items
+//                if (scrollY < oldScrollY - 12 && !extendedFloatingActionButton.isExtended()) {
+//                    extendedFloatingActionButton.extend();
+//                }
+//
+//                // if the nestedScrollView is at the first item of the list then the
+//                // extended floating action should be in extended state
+//                if (scrollY == 0) {
+//                    extendedFloatingActionButton.extend();
+//                }
+//            }
+//        });
+
+        list = (MainList) getSupportFragmentManager().findFragmentById(R.id.list_list_fragment);
         addButton = (FloatingActionButton) findViewById(R.id.list_add_btn);
         progressBar = (ProgressBar) findViewById(R.id.progress);
         accountNameDisplay = (TextView) header.findViewById(R.id.list_nav_account_name);
@@ -252,6 +281,75 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
                 }
             }
         });
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            list.mRecyclerView.setOnScrollChangeListener((v, scrollX,
+                                                          scrollY, oldScrollX, oldScrollY) -> {
+                // the delay of the extension of the FAB is set for 12 items
+
+                if (scrollY > oldScrollY + 12 && addButton.isShown()) {
+                    addButton.hide();
+                }
+
+                // the delay of the extension of the FAB is set for 12 items
+                if (scrollY < oldScrollY - 12 && !addButton.isShown()) {
+                    addButton.show();
+                }
+
+                // if the nestedScrollView is at the first item of the list then the
+                // extended floating action should be in extended state
+                if (scrollY == 0) {
+                    addButton.show();
+                }
+            });
+
+
+        }
+//        findViewById(R.id.list_fragment_pull_to_refresh).setOnScrollChangeListener(new OnScrollChangeListener() {
+//            @Override
+//            public void onScrollChange(NestedScrollView v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+//                // the delay of the extension of the FAB is set for 12 items
+//                if (scrollY > oldScrollY + 12 && extendedFloatingActionButton.isExtended()) {
+//                    extendedFloatingActionButton.shrink();
+//                }
+//
+//                // the delay of the extension of the FAB is set for 12 items
+//                if (scrollY < oldScrollY - 12 && !extendedFloatingActionButton.isExtended()) {
+//                    extendedFloatingActionButton.extend();
+//                }
+//
+//                // if the nestedScrollView is at the first item of the list then the
+//                // extended floating action should be in extended state
+//                if (scrollY == 0) {
+//                    extendedFloatingActionButton.extend();
+//                }
+//            }
+//        }
+//
+//
+//                                                                                   }
+//        );
+//        final ExtendedFloatingActionButton extendedFloatingActionButton = findViewById(R.id.extFloatingActionButton);
+//        list.set
+//        nestedScrollView.setOnScrollChangeListener(new NestedScrollView.OnScrollChangeListener() {
+//            @Override
+//            public void onScrollChange(NestedScrollView v, int scrollX, int scrollY, int oldScrollX, int oldScrollY) {
+//                // the delay of the extension of the FAB is set for 12 items
+//                if (scrollY > oldScrollY + 12 && extendedFloatingActionButton.isExtended()) {
+//                    extendedFloatingActionButton.shrink();
+//                }
+//
+//                // the delay of the extension of the FAB is set for 12 items
+//                if (scrollY < oldScrollY - 12 && !extendedFloatingActionButton.isExtended()) {
+//                    extendedFloatingActionButton.extend();
+//                }
+//
+//                // if the nestedScrollView is at the first item of the list then the
+//                // extended floating action should be in extended state
+//                if (scrollY == 0) {
+//                    extendedFloatingActionButton.extend();
+//                }
+//            }
+//        });
         addButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -429,12 +527,21 @@ public class MainActivity extends AppCompatActivity implements Controller.ToastM
                     controller.toastMessage(result, true);
                 } else {
                     if (null != message) { // Show success message
-                        controller.toastMessage(message, false);
+//                        controller.toastMessage(message, false);
+                        show_undo_msg(message);
                     }
                     list.reload();
                 }
             }
         };
+
+//        Snackbar.SnackbarLayout layout = (Snackbar.SnackbarLayout) snackbar.getView();
+//
+//        Snackbar.make(layout, "Subscription Deleted", Snackbar.LENGTH_LONG)
+//                .setAction("Undo",  a -> {
+////                            activeSubs.add(position-1, tmp)
+////                            adapter!!.notifyDataSetChanged()
+//                });
         task.exec();
     }
 
