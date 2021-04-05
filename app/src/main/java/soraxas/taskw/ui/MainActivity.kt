@@ -416,7 +416,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
     }
 
     private fun refreshAccount(account: String) {
-        launch (Dispatchers.Default) {
+        launch(Dispatchers.Default) {
             ac = controller.accountController(account, true)
             if (null != ac) {
                 // Refreshed
@@ -439,7 +439,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
 
     private fun doOp(message: String?, uuid: String, op: String, vararg ops: String) {
         ac?.let {
-            launch (Dispatchers.Default){
+            launch(Dispatchers.Default) {
                 val result: String? =
                         when {
                             "done".equals(op, ignoreCase = true) -> {
@@ -565,7 +565,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
     }
 
     private fun refreshReports() {
-        launch (){
+        launch() {
             var result: Map<String, String?> = ac!!.taskReports()
             // We're in UI thread
             navigation.menu.findItem(R.id.menu_nav_debug).isVisible = ac!!
@@ -581,14 +581,14 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
                             reload()
                             false
                         }
-                // Report mode
-                var report = form.getValue<String>(App.KEY_REPORT)
-                if (null == report || !result.containsKey(report)) {
-                    report = result.keys.iterator().next() // First item
-                }
-                form.setValue(App.KEY_REPORT, report)
-                list.load(form, updateTitleAction)
             }
+            // Report mode
+            var report = form.getValue<String>(App.KEY_REPORT)
+            if (null == report || !result.containsKey(report)) {
+                report = result.keys.iterator().next() // First item
+            }
+            form.setValue(App.KEY_REPORT, report)
+            list.load(form, updateTitleAction)
         }
     }
 
@@ -627,7 +627,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
 
     private fun undo() {
         if (null == ac) return
-        launch (Dispatchers.Default){
+        launch(Dispatchers.Default) {
             val result: String? = ac!!.taskUndo()
             if (null != result) {
                 controller.toastMessage(result, false)
@@ -642,7 +642,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
             controller.toastMessage("Unable to sync", false)
             return
         }
-        launch (Dispatchers.Default){
+        launch(Dispatchers.Default) {
             var result: String? = ac!!.taskSync()
             if (null != result) { // Error
                 controller.toastMessage(result, false)
