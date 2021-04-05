@@ -153,7 +153,7 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
                     holder.mCalLabelContainer.addView(v)
                 }
                 // add tags labels
-                val tags = item.json!!.optJSONArray("tags")
+                val tags = item.json.optJSONArray("tags")
                 tags?.let {
                     val v = Helpers.createLabel(viewContext, false,
                             R.drawable.ic_label_tags, Helpers.join("m", Helpers
@@ -451,12 +451,6 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
             }
         }
 
-        override fun onCleanUp() {
-            super.onCleanUp()
-            // clear the references
-//            mAdapter = null
-        }
-
     }
 
     private class SwipeRightResultAction internal constructor(private val mAdapter:
@@ -478,12 +472,6 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
             }
         }
 
-        override fun onCleanUp() {
-            super.onCleanUp()
-            // clear the references
-//            mAdapter = null
-        }
-
     }
 
     private class UnpinResultAction internal constructor(private val mAdapter:
@@ -497,11 +485,6 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
             }
         }
 
-        override fun onCleanUp() {
-            super.onCleanUp()
-            // clear the references
-//            mAdapter = null
-        }
     }
 
     companion object {

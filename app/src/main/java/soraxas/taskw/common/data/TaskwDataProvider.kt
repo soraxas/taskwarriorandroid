@@ -94,10 +94,12 @@ class TaskwDataProvider {
             for (projKey in sorted_proj) {
                 run {
                     // add the header
-                    val projKeyAsUuid = when (projKey) {
+                    var projKeyAsUuid = when (projKey) {
                         "" -> "[no project]"
                         else -> projKey
                     }
+                    // add project count to the end of the key
+                    projKeyAsUuid += " (" + project[projKey]!!.first.size + ")"
                     newUUIDtoData[projKeyAsUuid] = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_HEADER,
                             projKeyAsUuid,
                             JSONObject(), swipeReaction)
