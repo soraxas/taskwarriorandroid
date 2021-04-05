@@ -60,26 +60,16 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
     private val mSwipeableViewContainerOnClickListener: View.OnClickListener? = null
     private val urgMin = 0
     private val urgMax = 0
-    private fun getJsonWithTaskUuid(uuid: String): JSONObject? {
-        var json: JSONObject? = null
-        for (data in mProvider.mData) {
-            if (data.json?.optString("uuid") == uuid) {
-                json = data.json
-                break
-            }
-        }
-        return json
-    }
 
     private fun onItemViewClick(v: View, position: Int, pinned: Boolean) {
-        val json = mProvider.jsonData[position]!!
+        val json = mProvider.getItem(position).json
         val taskUuid = json.optString("uuid")
         val context = v.context
         val taskDetailView = View.inflate(context, R.layout.item_one_task_detail, null)
 
         updateCurTaskDetailView = Runnable {
             uiScope.launch {
-                populateTaskDetailView(getJsonWithTaskUuid(taskUuid), context,
+                populateTaskDetailView(mProvider.getJsonWithTaskUuid(taskUuid), context,
                         taskDetailView)
             }
         }
@@ -138,8 +128,8 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
 //                holder.itemView.setOnClickListener(mItemViewOnClickListener);
                 holder.itemView.setOnClickListener { v: View -> onItemViewClick(v, position, true) }
                 // (if the item is *not pinned*, click event comes to the mContainer)
-                holder.mContainer.setOnClickListener { v: View ->
-                    onItemViewClick(v, position, false)
+                holder.mContainer.setOnClickListener { v: View -> onItemViewClick(v,
+                        position, false)
                 }
                 //                holder.mContainer.setOnClickListener(mSwipeableViewContainerOnClickListener);
 
@@ -261,7 +251,7 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
         val status = json!!.optString("status", "pending")
         val task_status_btn = views.findViewById<ImageView>(R.id.task_status_btn)
         task_status_btn.setImageResource(Helpers.status2icon(status))
-        task_status_btn.setOnClickListener { v: View? ->
+        task_status_btn.setOnClickListener {
             listener?.onStatus(json)
         }
 

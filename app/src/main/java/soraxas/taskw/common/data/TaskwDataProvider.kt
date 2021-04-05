@@ -11,6 +11,7 @@ import soraxas.taskw.BuildConfig
 import soraxas.taskw.R
 import soraxas.taskw.common.Helpers
 import java.util.*
+import kotlin.collections.HashMap
 
 /*
  *    Copyright (C) 2015 Haruki Hasegawa
@@ -28,14 +29,14 @@ import java.util.*
  *    limitations under the License.
  */
 class TaskwDataProvider {
-    var jsonData: MutableList<JSONObject?> = ArrayList()
     val mData: MutableList<TaskwData> = ArrayList()
+    val mUuidToData: MutableMap<String, TaskwData> = HashMap()
 
     private var mLastRemovedData: TaskwData? = null
     private var mLastRemovedPosition = -1
+    private val useProjectAsDivider = true
 
-    fun update_report_info(list: List<JSONObject>, useProjectAsDivider: Boolean =
-            true) {
+    fun update_report_info(list: List<JSONObject>) {
 //
 //        int urgMin;
 //        int urgMax;
@@ -57,20 +58,21 @@ class TaskwDataProvider {
 //            urgMax = (int) Math.ceil(max);
 //        }
 //        morph(list, data, uuidAcc);
-//        data.clear();
-//        data.addAll(list);
+
+
         mData.clear()
-        jsonData.clear()
+        mUuidToData.clear()
 
 //    var jsonData: MutableList<JSONObject?> = ArrayList()
 //    private val mData: MutableList<TaskwData> = ArrayList()
 
         if (!useProjectAsDivider) {
             for (json in list) {
-                val id = mData.size.toLong()
                 val swipeReaction = RecyclerViewSwipeManager.REACTION_CAN_SWIPE_UP or RecyclerViewSwipeManager.REACTION_CAN_SWIPE_DOWN
-                mData.add(TaskwData(id, ITEM_VIEW_TYPE_SECTION_ITEM, json, swipeReaction))
-                jsonData.add(json)
+                val data = TaskwData(ITEM_VIEW_TYPE_SECTION_ITEM, json,
+                        swipeReaction)
+                mData.add(data)
+                mUuidToData[data.uuid] = data
             }
         } else {
             // a map of list of tasks (where each list of task is a project)
@@ -98,18 +100,28 @@ class TaskwDataProvider {
 
             // put back into result
             for (proj_key in sorted_proj) {
-                mData.add(TaskwData(id++.toLong(), ITEM_VIEW_TYPE_SECTION_HEADER,
+                mData.add(TaskwData(ITEM_VIEW_TYPE_SECTION_HEADER,
                         if (proj_key == "") "[no project]" else proj_key))
-                jsonData.add(null) // this is a header
                 for (json in project[proj_key]!!.first) {
                     val swipeReaction = RecyclerViewSwipeManager.REACTION_CAN_SWIPE_UP or RecyclerViewSwipeManager.REACTION_CAN_SWIPE_DOWN
-                    val data = TaskwData(id++.toLong(), ITEM_VIEW_TYPE_SECTION_ITEM,
+                    val data = TaskwData(ITEM_VIEW_TYPE_SECTION_ITEM,
                             json, swipeReaction)
                     mData.add(data)
-                    jsonData.add(json)
+                    mUuidToData[data.uuid] = data
                 }
             }
         }
+    }
+
+    fun getJsonWithTaskUuid(uuid: String): JSONObject? {
+        var json: JSONObject? = null
+        for (data in mData) {
+            if (data.json.optString("uuid") == uuid) {
+                json = data.json
+                break
+            }
+        }
+        return json
     }
 
     val count: Int
@@ -166,27 +178,33 @@ class TaskwDataProvider {
         val text: String
         var hasAnno = false
         var hasStarted = false
-        var json: JSONObject? = null
-        var id: Long = 0
-            private set
+        var json: JSONObject
         var viewType = 0
             private set
         var isPinned = false
+        val id: Long
+        val uuid: String
 
-        internal constructor(id: Long, viewType: Int, description: String) {
+
+        internal constructor(viewType: Int, description: String) {
             if (BuildConfig.DEBUG && viewType != ITEM_VIEW_TYPE_SECTION_HEADER) {
                 throw AssertionError("Assertion failed")
             }
             text = description
+            json = JSONObject()  // placeholder
+            uuid = ""
+            id = -1
         }
 
-        internal constructor(id: Long, viewType: Int, json: JSONObject, swipeReaction: Int) {
+        internal constructor(viewType: Int, json: JSONObject, swipeReaction: Int) {
             this.json = json
-            this.id = id
             this.viewType = viewType
-            text = makeText(id, json.optString("description"), swipeReaction)
+            text = makeText(json.optString("description"), swipeReaction)
             hasStarted = !TextUtils.isEmpty(json.optString("start"))
             hasAnno = json.optJSONArray("annotations") != null
+
+            uuid = json.optString("uuid")
+            id = UUID.fromString(uuid).mostSignificantBits and Long.MAX_VALUE
 
 //            for (Iterator<String> it = json.keys(); it.hasNext(); ) {
 //                String key = it.next();
@@ -294,7 +312,7 @@ class TaskwDataProvider {
             return if (hasStarted) View.VISIBLE else View.INVISIBLE
         }
 
-        private fun makeText(id: Long, text: String, swipeReaction: Int): String {
+        private fun makeText(text: String, swipeReaction: Int): String {
             return text
             //            return String.valueOf(id) + " - " + text;
         }
