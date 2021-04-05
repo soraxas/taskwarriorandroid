@@ -42,7 +42,7 @@ class AnnotationDialog : AppCompatActivity() {
         val ac = controller.accountController(form.getValue(App.KEY_ACCOUNT, String::class.java))
         GlobalScope.launch {
             val uuid = form.getValue<String>(App.KEY_EDIT_UUID)
-            var result: String = ac.taskAnnotate(uuid, text)!!
+            val result: String? = ac.taskAnnotate(uuid, text)
             if (null != result) { // Error
                 controller.toastMessage(result, false)
             } else {

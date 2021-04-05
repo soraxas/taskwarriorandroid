@@ -16,7 +16,9 @@ import com.h6ah4i.android.widget.advrecyclerview.decoration.ItemShadowDecorator
 import com.h6ah4i.android.widget.advrecyclerview.decoration.SimpleListDividerDecorator
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.RecyclerViewSwipeManager
 import com.h6ah4i.android.widget.advrecyclerview.touchguard.RecyclerViewTouchActionGuardManager
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.kvj.bravo7.form.FormController
 import org.kvj.bravo7.log.Logger
@@ -31,38 +33,39 @@ import soraxas.taskw.data.ReportInfo
  * Created by vorobyev on 11/19/15.
  */
 class MainList : Fragment() {
+    private val job = Job()
+    private val uiScope = CoroutineScope(Dispatchers.Main + job)
+    private val workerScope = CoroutineScope(Dispatchers.Default + job)
     lateinit var mRecyclerView: RecyclerView
-    lateinit var mAdapter: SwipListAdapter
+    lateinit var mAdapter: SwipeListAdapter
     var controller = controller()
     var logger = Logger.forInstance(this)
-    var mDataProvider: TaskwDataProvider? = null
     private var account: String? = null
-    private var mLayoutManager: RecyclerView.LayoutManager? = null
-    private var mWrappedAdapter: RecyclerView.Adapter<*>? = null
-    private var mRecyclerViewSwipeManager: RecyclerViewSwipeManager? = null
-    private var mRecyclerViewTouchActionGuardManager: RecyclerViewTouchActionGuardManager? = null
+    private lateinit var mDataProvider: TaskwDataProvider
+    private lateinit var mRecyclerViewSwipeManager: RecyclerViewSwipeManager
+    private lateinit var mRecyclerViewTouchActionGuardManager:
+            RecyclerViewTouchActionGuardManager
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_list, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         mRecyclerView = view.findViewById(R.id.list_main_list)
-        mLayoutManager = LinearLayoutManager(requireContext(), RecyclerView.VERTICAL, false)
-        mRecyclerView.setLayoutManager(mLayoutManager)
+        mRecyclerView.layoutManager = LinearLayoutManager(requireContext(), RecyclerView.VERTICAL, false)
 
         // touch guard manager  (this class is required to suppress scrolling while swipe-dismiss animation is running)
         mRecyclerViewTouchActionGuardManager = RecyclerViewTouchActionGuardManager()
-        mRecyclerViewTouchActionGuardManager!!.setInterceptVerticalScrollingWhileAnimationRunning(true)
-        mRecyclerViewTouchActionGuardManager!!.isEnabled = true
-
+        mRecyclerViewTouchActionGuardManager.setInterceptVerticalScrollingWhileAnimationRunning(true)
+        mRecyclerViewTouchActionGuardManager.isEnabled = true
 
         // swipe manager
         mRecyclerViewSwipeManager = RecyclerViewSwipeManager()
 
         //adapter
         mDataProvider = TaskwDataProvider()
-        mAdapter = SwipListAdapter(mDataProvider!!)
-        mAdapter!!.eventListener = object : SwipListAdapter.EventListener {
+        mAdapter = SwipeListAdapter(mDataProvider)
+        mAdapter.eventListener = object : SwipeListAdapter.EventListener {
             override fun onItemRemoved(position: Int) {
 //                ((SwipeOnLongPressExampleActivity) getActivity()).onItemRemoved(position);
             }
@@ -73,15 +76,13 @@ class MainList : Fragment() {
 
             override fun onItemViewClicked(v: View?, pinned: Boolean) {}
         }
-        mWrappedAdapter = mRecyclerViewSwipeManager!!.createWrappedAdapter(mAdapter!!) // wrap for swiping
         val animator: GeneralItemAnimator = SwipeDismissItemAnimator()
 
         // Change animations are enabled by default since support-v7-recyclerview v22.
         // Disable the change animation in order to make turning back animation of swiped item works properly.
         animator.supportsChangeAnimations = false
-        mRecyclerView.setLayoutManager(mLayoutManager)
-        mRecyclerView.setAdapter(mWrappedAdapter) // requires *wrapped* adapter
-        mRecyclerView.setItemAnimator(animator)
+        mRecyclerView.adapter = mRecyclerViewSwipeManager.createWrappedAdapter(mAdapter) // wrap for swiping
+        mRecyclerView.itemAnimator = animator
 
 
         // additional decorations
@@ -96,42 +97,52 @@ class MainList : Fragment() {
         // The initialization order is very important! This order determines the priority of touch event handling.
         //
         // priority: TouchActionGuard > Swipe > DragAndDrop
-        mRecyclerViewTouchActionGuardManager!!.attachRecyclerView(mRecyclerView)
-        mRecyclerViewSwipeManager!!.attachRecyclerView(mRecyclerView)
+        mRecyclerViewTouchActionGuardManager.attachRecyclerView(mRecyclerView)
+        mRecyclerViewSwipeManager.attachRecyclerView(mRecyclerView)
     }
 
     fun load(form: FormController, afterLoad: Runnable?) {
-        // load the chosen report
-        account = form.getValue<String>(App.KEY_ACCOUNT)
-        val report = form.getValue<String>(App.KEY_REPORT)
-        val query = form.getValue<String>(App.KEY_QUERY)
+        workerScope.launch {
+            // load the chosen report
+            account = form.getValue<String>(App.KEY_ACCOUNT)
+            val report = form.getValue<String>(App.KEY_REPORT)
+            val query = form.getValue<String>(App.KEY_QUERY)
 
-        GlobalScope.launch {
             logger.d("Load:", query, report)
-            var result: ReportInfo = controller.accountController(account).taskReportInfo(report, query)
-            mAdapter!!.info = result
+            val result: ReportInfo = controller.accountController(account).taskReportInfo(report, query)
+            mAdapter.info = result
             afterLoad?.run()
             reload()
         }
     }
 
     fun reload() {
-        if (null == mAdapter!!.info || null == account) return
+        if (null == account) return
         // Load all items
-        GlobalScope.launch {
-            logger.d("Exec:", mAdapter!!.info!!.query)
-            val list = controller.accountController(account).taskList(mAdapter!!.info!!.query)
-            mAdapter!!.info!!.sort(list) // Sorted
+        workerScope.launch {
+            logger.d("Exec:", mAdapter.info.query)
+            val list = controller.accountController(account).taskList(mAdapter.info.query)
+            mAdapter.info.sort(list) // Sorted
             // according to report spec.
-            mDataProvider!!.update_report_info(list, mAdapter!!.info)
-
-//                mWindowAttachCount
-            if (mAdapter!!.update_cur_taskDetailView != null) mAdapter!!.update_cur_taskDetailView!!.run()
-            mAdapter!!.notifyDataSetChanged()
+            mDataProvider.update_report_info(list)
+            mAdapter.updateCurTaskDetailView?.run()
+            notifyUiUpdate()
         }
     }
 
-    fun listener(listener: SwipListAdapter.ItemListener?) {
-        mAdapter!!.listener = listener
+    private fun notifyUiUpdate() {
+        // always run in the ui thread
+        uiScope.launch {
+            mAdapter.notifyDataSetChanged()
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        job.cancel()
+    }
+
+    fun listener(listener: SwipeListAdapter.ItemListener?) {
+        mAdapter.listener = listener
     }
 }

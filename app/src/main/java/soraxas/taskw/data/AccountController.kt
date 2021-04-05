@@ -8,8 +8,7 @@ import android.net.Uri
 import android.text.TextUtils
 import androidx.core.app.NotificationCompat
 import androidx.preference.PreferenceManager
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.json.JSONObject
 import org.kvj.bravo7.log.Logger
 import org.kvj.bravo7.log.Logger.LoggerLevel
@@ -34,6 +33,10 @@ import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 
 class AccountController(private val controller: Controller, private val id: String, private val accountName: String) {
+
+    private val job = Job()
+    private val accountControllerScope = CoroutineScope(Dispatchers.Main + job)
+
     private var acceptThread: Thread? = null
     private val notificationTypes: MutableSet<NotificationType> = HashSet()
     var fileLogger: FileLogger? = null
@@ -159,7 +162,7 @@ class AccountController(private val controller: Controller, private val id: Stri
     }
 
     private fun loadNotificationTypes() {
-        GlobalScope.launch {
+        accountControllerScope.launch {
             val config = taskSettings(androidConf("sync.notification"))
             val s: String = when {
                 config.isEmpty() -> "all"
@@ -230,7 +233,7 @@ class AccountController(private val controller: Controller, private val id: Stri
     }
 
     fun scheduleSync(type: TimerType) {
-        GlobalScope.launch {
+        accountControllerScope.launch {
             val config = taskSettings(androidConf(String.format("sync.%s", type.type)))
             val minutes: Double;
             minutes = if (config.isEmpty()) {
@@ -761,7 +764,8 @@ class AccountController(private val controller: Controller, private val id: Stri
         }
         val context = taskSetting("context")
         logger.d("taskList context:", context)
-        debug("List query:", query, "context:", context!!)
+        if (context != null)
+            debug("List query:", query, "context:", context)
         if (!TextUtils.isEmpty(context)) { // Have context configured
             val cQuery = taskSetting(String.format("context.%s", context))
             if (!TextUtils.isEmpty(cQuery)) { // Prepend context

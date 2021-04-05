@@ -12,8 +12,7 @@ import android.widget.AutoCompleteTextView
 import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.kvj.bravo7.form.BundleAdapter
 import org.kvj.bravo7.form.FormController
 import org.kvj.bravo7.form.impl.ViewFinder.ActivityViewFinder
@@ -31,12 +30,16 @@ import soraxas.taskw.data.AccountController.TaskListener
 import soraxas.taskw.ui.EditorActivity
 import soraxas.taskw.ui.MainActivity.Companion.setupProgressListener
 import soraxas.taskw.utils.AutoTagsSuggestAdapter
+import java.lang.Runnable
 import java.util.*
 
 /**
  * Created by kvorobyev on 11/21/15.
  */
 class EditorActivity : AppCompatActivity() {
+    private val job = Job()
+    private val ioiScope = CoroutineScope(Dispatchers.IO + job)
+
     private var toolbar: Toolbar? = null
     private var editor: Editor? = null
     private val form = FormController(ActivityViewFinder(this))
@@ -90,8 +93,8 @@ class EditorActivity : AppCompatActivity() {
         }
         toolbar!!.subtitle = ac!!.name()
         progressListener = setupProgressListener(this, progressBar)
-        GlobalScope.launch {
-            var result: List<String> = ac!!.taskPriority()
+        ioiScope.launch {
+            val result: List<String> = ac!!.taskPriority()
             editor!!.setupPriorities(result)
             priorities = result
             form.load(this@EditorActivity, savedInstanceState, App.KEY_EDIT_PRIORITY)
@@ -236,8 +239,8 @@ class EditorActivity : AppCompatActivity() {
     }
 
     private fun doSave(addAnother: Boolean) {
-        GlobalScope.launch {
-            var result: String = save()!!
+        ioiScope.launch {
+            val result: String? = save()
             if (!TextUtils.isEmpty(result)) { // Failed
                 controller.toastMessage(result, true)
             } else {

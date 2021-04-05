@@ -27,7 +27,7 @@ public class MainListAdapter  {
     List<JSONObject> data = new ArrayList<>();
     static Logger logger = Logger.forClass(MainListAdapter.class);
     private ReportInfo info = null;
-    private SwipListAdapter.ItemListener listener = null;
+    private SwipeListAdapter.ItemListener listener = null;
 
 
 

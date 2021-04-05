@@ -3,7 +3,6 @@ package soraxas.taskw.ui
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.text.TextUtils
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -29,7 +28,7 @@ class TextEditor : AppCompatActivity() {
     var form = FormController(ActivityViewFinder(this))
     private var toolbar: Toolbar? = null
     var controller = controller()
-    var logger = Logger.forInstance(this)
+    var logger = Logger.forInstance(this)!!
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_text_editor)
@@ -51,21 +50,19 @@ class TextEditor : AppCompatActivity() {
         toolbar!!.subtitle = form.getValue(App.KEY_TEXT_TARGET, String::class.java)
     }
 
-    private fun loadText(intent: Intent?) {
+    private fun loadText(intent: Intent) {
+        lateinit var file: InputStream
         // Load
-        var file: InputStream? = null
-        val _uri = intent!!.data
-        if (null != intent && !TextUtils.isEmpty(intent.dataString)) {
-            val filePath: String? = null
-            try {
-                if ("content" == _uri.scheme || "file" == _uri.scheme) {
-                    file = contentResolver.openInputStream(_uri)
-                }
-            } catch (e: Exception) {
-                logger.e(e, "Error getting file:", intent.data, intent.data.path)
+        lateinit var _uri: android.net.Uri
+        try {
+            _uri = intent.data!!
+            if ("content" == _uri.scheme || "file" == _uri.scheme) {
+                file = contentResolver.openInputStream(_uri)
+                if (file == null)
+                    throw Exception("Error in opening input stream")
             }
-        }
-        if (null == file) {
+        } catch (e: Exception) {
+            logger.e(e, "Error getting file:", intent.data, intent.data.path)
             // Invalid file
             controller.toastMessage("Invalid file provided", true)
             finish()
@@ -73,8 +70,8 @@ class TextEditor : AppCompatActivity() {
         }
         val finalFile: InputStream = file
         GlobalScope.launch {
-            var result: String = controller.readFile(finalFile)
-            logger.d("File loaded:", _uri, result != null)
+            val result: String = controller.readFile(finalFile)
+            logger.d("File loaded:", _uri, true)
             if (null == result) {
                 controller.toastMessage("File IO error", true)
                 this@TextEditor.finish()

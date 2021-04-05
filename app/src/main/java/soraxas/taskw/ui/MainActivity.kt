@@ -29,7 +29,9 @@ import androidx.drawerlayout.widget.DrawerLayout
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.kvj.bravo7.form.FormController
@@ -45,17 +47,22 @@ import soraxas.taskw.common.Helpers
 import soraxas.taskw.data.AccountController
 import soraxas.taskw.data.AccountController.TaskListener
 import soraxas.taskw.data.Controller
-import soraxas.taskw.ui.MainActivity
 import java.util.*
+import kotlin.coroutines.CoroutineContext
 
 
-class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
+class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, CoroutineScope {
+    private lateinit var mJob: Job
+    override val coroutineContext: CoroutineContext
+        get() = mJob + Dispatchers.Main
+
+
     private val form = FormController(ActivityViewFinder(this))
-    var logger = Logger.forInstance(this)
+    var logger = Logger.forInstance(this)!!
     var controller: Controller = App.controller()
     private var ac: AccountController? = null
-    private var toolbar: Toolbar? = null
-    private var navigationDrawer: DrawerLayout? = null
+    private lateinit var toolbar: Toolbar
+    private lateinit var navigationDrawer: DrawerLayout
     private val accountMenuListener = PopupMenu.OnMenuItemClickListener { item ->
         when (item.itemId) {
             R.id.menu_account_add -> controller.addAccount(this@MainActivity)
@@ -67,11 +74,15 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
         navigationDrawer!!.closeDrawers()
         true
     }
-    private var navigation: NavigationView? = null
-    private var filterPanel: ViewGroup? = null
-    private var mPtrFrame: PtrClassicFrameLayout? = null
-    private var list: MainList? = null
-    private val updateTitleAction = Runnable { if (null != toolbar) toolbar!!.subtitle = list!!.mAdapter.info!!.description }
+    private lateinit var navigation: NavigationView
+    private lateinit var filterPanel: ViewGroup
+    private lateinit var mPtrFrame: PtrClassicFrameLayout
+    private lateinit var list: MainList
+    private val updateTitleAction = Runnable {
+        launch {
+            toolbar.subtitle = list.mAdapter.info!!.description
+        }
+    }
     private var addButton: FloatingActionButton? = null
     private var progressBar: ProgressBar? = null
     private var progressListener: TaskListener? = null
@@ -79,7 +90,9 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
     private var accountNameID: TextView? = null
     private var header: ViewGroup? = null
 
-    private fun show_undo_msg(message: String) {
+    private fun show_undo_msg(message: String?) {
+        if (message == null)
+            return;
         val parentLayout = findViewById<View>(R.id.coordinator_layout)
         Snackbar.make(parentLayout, message, Snackbar.LENGTH_INDEFINITE)
                 .setAction("UNDO") { undo() }
@@ -89,13 +102,14 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        mJob = Job()
         controller.toastListeners().add(this)
         setContentView(R.layout.activity_list)
         toolbar = findViewById(R.id.toolbar)
         navigationDrawer = findViewById<View>(R.id.list_navigation_drawer) as DrawerLayout
         navigation = findViewById<View>(R.id.list_navigation) as NavigationView
-        header = navigation!!.inflateHeaderView(R.layout.item_nav_header) as ViewGroup
-        navigation!!.setNavigationItemSelectedListener { item: MenuItem ->
+        header = navigation.inflateHeaderView(R.layout.item_nav_header) as ViewGroup
+        navigation.setNavigationItemSelectedListener { item: MenuItem ->
             onNavigationMenu(item)
             true
         }
@@ -123,22 +137,23 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
 //                }
 //            }
 //        });
-        list = supportFragmentManager.findFragmentById(R.id.list_list_fragment) as MainList?
+        list = supportFragmentManager.findFragmentById(R.id.list_list_fragment) as
+                MainList
         addButton = findViewById<View>(R.id.list_add_btn) as FloatingActionButton
         progressBar = findViewById<View>(R.id.progress) as ProgressBar
         accountNameDisplay = header!!.findViewById<View>(R.id.list_nav_account_name) as TextView
         accountNameID = header!!.findViewById<View>(R.id.list_nav_account_id) as TextView
         filterPanel = findViewById<View>(R.id.list_filter_block) as ViewGroup
         setSupportActionBar(toolbar)
-        toolbar!!.setNavigationOnClickListener(View.OnClickListener { v: View? ->
+        toolbar!!.setNavigationOnClickListener {
             if (navigationDrawer!!.isDrawerOpen(Gravity.LEFT)) {
                 navigationDrawer!!.closeDrawers()
             } else {
                 navigationDrawer!!.openDrawer(Gravity.LEFT)
             }
-        })
+        }
         header!!.findViewById<View>(R.id.list_nav_menu_btn).setOnClickListener { v: View -> showAccountMenu(v) }
-        list!!.listener(object : SwipListAdapter.ItemListener {
+        list.listener(object : SwipeListAdapter.ItemListener {
             override fun onEdit(json: JSONObject?) {
                 edit(json) // Start editor
             }
@@ -227,17 +242,17 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
             }
         })
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            list!!.mRecyclerView.setOnScrollChangeListener { v: View?, scrollX: Int, scrollY: Int, oldScrollX: Int, oldScrollY: Int ->
+            list.mRecyclerView.setOnScrollChangeListener { v: View?, scrollX: Int, scrollY: Int, oldScrollX: Int, oldScrollY: Int ->
                 // the delay of the extension of the FAB is set for 12 items
                 val numItemForFAB = 4
                 logger.d(v)
                 logger.d(scrollX, scrollY, oldScrollX, oldScrollY)
-                if (scrollY > oldScrollY + numItemForFAB && addButton!!.isShown()) {
+                if (scrollY > oldScrollY + numItemForFAB && addButton!!.isShown) {
                     addButton!!.hide()
                 }
 
                 // the delay of the extension of the FAB is set for 12 items
-                if (scrollY < oldScrollY - numItemForFAB && !addButton!!.isShown()) {
+                if (scrollY < oldScrollY - numItemForFAB && !addButton!!.isShown) {
                     addButton!!.show()
                 }
 
@@ -311,13 +326,13 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
         })
         if (!TextUtils.isEmpty(form.getValue(App.KEY_QUERY, String::class.java))) {
             // Have something in query
-            filterPanel!!.visibility = View.VISIBLE
+            filterPanel.visibility = View.VISIBLE
         }
 
         // pull-to-refresh swipeToRefresh
         mPtrFrame = findViewById<PtrClassicFrameLayout>(R.id.list_fragment_pull_to_refresh)
-        mPtrFrame!!.setLastUpdateTimeRelateObject(this)
-        mPtrFrame!!.setPtrHandler(object : PtrHandler {
+        mPtrFrame.setLastUpdateTimeRelateObject(this)
+        mPtrFrame.setPtrHandler(object : PtrHandler {
             override fun onRefreshBegin(frame: PtrFrameLayout) {
                 sync()
                 frame.refreshComplete()
@@ -342,8 +357,8 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
     private fun reload() {
         // Show/hide filter
         val query = form.getValue<String>(App.KEY_QUERY)
-        filterPanel!!.visibility = if (TextUtils.isEmpty(query)) View.GONE else View.VISIBLE
-        list!!.load(form, updateTitleAction)
+        filterPanel.visibility = if (TextUtils.isEmpty(query)) View.GONE else View.VISIBLE
+        list.load(form, updateTitleAction)
     }
 
     private fun annotate(json: JSONObject?) {
@@ -400,12 +415,8 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
         }
     }
 
-    suspend fun a(): Int {
-        return 1;
-    }
-
     private fun refreshAccount(account: String) {
-        GlobalScope.launch {
+        launch (Dispatchers.Default) {
             ac = controller.accountController(account, true)
             if (null != ac) {
                 // Refreshed
@@ -413,7 +424,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
             } else {
                 this@MainActivity.finish() // Close
             }
-        };
+        }
     }
 
     private fun changeStatus(json: JSONObject?) {
@@ -427,37 +438,37 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
     }
 
     private fun doOp(message: String?, uuid: String, op: String, vararg ops: String) {
-        if (ac == null) return
-        GlobalScope.launch {
-            val result: String? =
-                    when {
-                        "done".equals(op, ignoreCase = true) -> {
-                            ac!!.taskDone(uuid)
+        ac?.let {
+            launch (Dispatchers.Default){
+                val result: String? =
+                        when {
+                            "done".equals(op, ignoreCase = true) -> {
+                                it.taskDone(uuid)
+                            }
+                            "delete".equals(op, ignoreCase = true) -> {
+                                it.taskDelete(uuid)
+                            }
+                            "start".equals(op, ignoreCase = true) -> {
+                                it.taskStart(uuid)
+                            }
+                            "stop".equals(op, ignoreCase = true) -> {
+                                it.taskStop(uuid)
+                            }
+                            "denotate".equals(op, ignoreCase = true) -> {
+                                it.taskDenotate(uuid, ops[0])
+                            }
+                            else -> {
+                                "Not supported operation"
+                            }
                         }
-                        "delete".equals(op, ignoreCase = true) -> {
-                            ac!!.taskDelete(uuid)
-                        }
-                        "start".equals(op, ignoreCase = true) -> {
-                            ac!!.taskStart(uuid)
-                        }
-                        "stop".equals(op, ignoreCase = true) -> {
-                            ac!!.taskStop(uuid)
-                        }
-                        "denotate".equals(op, ignoreCase = true) -> {
-                            ac!!.taskDenotate(uuid, ops[0])
-                        }
-                        else -> {
-                            "Not supported operation"
-                        }
-                    }
-            if (null != result) {
-                controller.toastMessage(result, true)
-            } else {
-                message?.let { show_undo_msg(it) }
-                list!!.reload()
+                if (null != result) {
+                    controller.toastMessage(result, true)
+                } else {
+                    show_undo_msg(message)
+                    list.reload()
+                }
             }
-        };
-
+        }
 //        Snackbar.SnackbarLayout layout = (Snackbar.SnackbarLayout) snackbar.getView();
 //
 //        Snackbar.make(layout, "Subscription Deleted", Snackbar.LENGTH_LONG)
@@ -531,6 +542,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
             ac!!.listeners().remove(progressListener)
         }
         controller.toastListeners().remove(this)
+        mJob = Job()
         super.onDestroy()
     }
 
@@ -553,19 +565,19 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
     }
 
     private fun refreshReports() {
-        GlobalScope.launch {
+        launch (){
             var result: Map<String, String?> = ac!!.taskReports()
             // We're in UI thread
-            navigation!!.menu.findItem(R.id.menu_nav_debug).isVisible = ac!!
+            navigation.menu.findItem(R.id.menu_nav_debug).isVisible = ac!!
                     .debugEnabled()
-            val reportsMenu = navigation!!.menu.findItem(R.id.menu_nav_reports)
+            val reportsMenu = navigation.menu.findItem(R.id.menu_nav_reports)
             reportsMenu.subMenu.clear()
             for ((key, value) in result) { // Add reports
                 reportsMenu.subMenu.add(value).setIcon(R.drawable.ic_action_report)
                         .setOnMenuItemClickListener { // Show report
                             form.setValue(App.KEY_REPORT, key)
                             form.setValue(App.KEY_QUERY, null)
-                            list!!.load(form, updateTitleAction)
+                            list.load(form, updateTitleAction)
                             reload()
                             false
                         }
@@ -575,14 +587,14 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
                     report = result.keys.iterator().next() // First item
                 }
                 form.setValue(App.KEY_REPORT, report)
-                list!!.load(form, updateTitleAction)
+                list.load(form, updateTitleAction)
             }
         }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.menu_tb_reload -> list!!.reload()
+            R.id.menu_tb_reload -> list.reload()
             R.id.menu_tb_sync -> sync()
             R.id.menu_tb_undo -> undo()
             R.id.menu_tb_filter -> showFilter()
@@ -609,18 +621,18 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
     }
 
     private fun showFilter() {
-        filterPanel!!.visibility = View.VISIBLE
+        filterPanel.visibility = View.VISIBLE
         form.getView<View>(App.KEY_QUERY).requestFocus()
     }
 
     private fun undo() {
         if (null == ac) return
-        GlobalScope.launch {
+        launch (Dispatchers.Default){
             val result: String? = ac!!.taskUndo()
             if (null != result) {
                 controller.toastMessage(result, false)
             } else {
-                list!!.reload()
+                list.reload()
             }
         }
     }
@@ -630,13 +642,13 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
             controller.toastMessage("Unable to sync", false)
             return
         }
-        GlobalScope.launch {
+        launch (Dispatchers.Default){
             var result: String? = ac!!.taskSync()
             if (null != result) { // Error
                 controller.toastMessage(result, false)
             } else {
                 controller.toastMessage("Sync success", false)
-                list!!.reload()
+                list.reload()
             }
 
         }
@@ -738,7 +750,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener {
                     if (balance > 0) {
                         return
                     }
-                    activity.runOnUiThread { bar.setVisibility(View.GONE) }
+                    activity.runOnUiThread { bar.visibility = View.GONE }
                 }
 
                 override fun onQuestion(question: String?, callback: DataUtil

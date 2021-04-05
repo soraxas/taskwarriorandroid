@@ -361,6 +361,8 @@ public class Controller extends org.kvj.bravo7.ng.Controller {
     }
 
     public void toastMessage(final String message, final boolean showLong) {
+        if (message == null)
+            return;
         toastListeners.emit(listener -> {
             listener.onMessage(message, showLong);
             return false; // One shot

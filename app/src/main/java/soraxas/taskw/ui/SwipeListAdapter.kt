@@ -18,14 +18,17 @@ import com.h6ah4i.android.widget.advrecyclerview.swipeable.action.SwipeResultAct
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.action.SwipeResultActionMoveToSwipedDirection
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.action.SwipeResultActionRemoveItem
 import com.h6ah4i.android.widget.advrecyclerview.utils.AbstractSwipeableItemViewHolder
-import com.h6ah4i.android.widget.advrecyclerview.utils.RecyclerViewAdapterUtils
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.kvj.bravo7.log.Logger
 import soraxas.taskw.R
 import soraxas.taskw.common.Helpers
 import soraxas.taskw.common.data.TaskwDataProvider
 import soraxas.taskw.data.ReportInfo
-import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
+import kotlin.math.roundToInt
 
 /*
  *    Copyright (C) 2015 Haruki Hasegawa
@@ -41,13 +44,14 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
  *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
- */   class SwipListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.Adapter<MyViewHolder>(), SwipeableItemAdapter<MyViewHolder> {
-    @JvmField
-    var info: ReportInfo? = null
-    var cur_taskDetailView: View? = null
+ */
+class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.Adapter<RecyclerView.ViewHolder>(), SwipeableItemAdapter<RecyclerView.ViewHolder> {
+    lateinit var info: ReportInfo
+    private val job = Job()
+    private val uiScope = CoroutineScope(Dispatchers.Main + job)
 
     @JvmField
-    var update_cur_taskDetailView: Runnable? = null
+    var updateCurTaskDetailView: Runnable? = null
 
     @JvmField
     var listener: ItemListener? = null
@@ -56,11 +60,11 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
     private val mSwipeableViewContainerOnClickListener: View.OnClickListener? = null
     private val urgMin = 0
     private val urgMax = 0
-    private fun getJsonWithTaskId(id: Int): JSONObject? {
+    private fun getJsonWithTaskUuid(uuid: String): JSONObject? {
         var json: JSONObject? = null
-        for (j in mProvider.jsonData) {
-            if (j != null && j.optInt("id") == id) {
-                json = j
+        for (data in mProvider.mData) {
+            if (data.json?.optString("uuid") == uuid) {
+                json = data.json
                 break
             }
         }
@@ -68,33 +72,20 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
     }
 
     private fun onItemViewClick(v: View, position: Int, pinned: Boolean) {
-        val json = mProvider.jsonData[position]
-        val task_id = json.optInt("id")
+        val json = mProvider.jsonData[position]!!
+        val taskUuid = json.optString("uuid")
         val context = v.context
-        val taskDetailView = inflateTaskDetailView(json, context)
-        //        populateTaskDetailView(json, context, taskDetailView);
-//        bindTaskDetailView(taskDetailView, json);
-        cur_taskDetailView = taskDetailView
-        update_cur_taskDetailView = Runnable {
+        val taskDetailView = View.inflate(context, R.layout.item_one_task_detail, null)
 
-            // we can reduce the follow to use the json directly. However, this
-            // generalise better to subsequent updates
-            val _json = getJsonWithTaskId(task_id)
-            populateTaskDetailView(_json, context,
-                    taskDetailView)
+        updateCurTaskDetailView = Runnable {
+            uiScope.launch {
+                populateTaskDetailView(getJsonWithTaskUuid(taskUuid), context,
+                        taskDetailView)
+            }
         }
-        update_cur_taskDetailView!!.run()
+        updateCurTaskDetailView!!.run()
         showD(context, taskDetailView)
 
-//        Intent myIntent = new Intent(context, SwipeOnLongPressExampleActivity.class);
-////                myIntent.putExtra("key", value); //Optional parameters
-//        context.startActivity(myIntent);
-    }
-
-    private fun onSwipeableViewContainerClick(v: View) {
-        if (eventListener != null) {
-            eventListener!!.onItemViewClicked(RecyclerViewAdapterUtils.getParentViewHolderItemView(v), false) // false --- not pinned
-        }
     }
 
     override fun getItemId(position: Int): Long {
@@ -105,18 +96,20 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
         return mProvider.getItem(position).viewType
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MyViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
-
-//        final View v = inflater.inflate(R.layout.list_item, parent, false);
-        val v: View
-        v = when (viewType) {
-            TaskwDataProvider.ITEM_VIEW_TYPE_SECTION_HEADER -> inflater.inflate(R.layout.list_section_header, parent, false)
-            TaskwDataProvider.ITEM_VIEW_TYPE_SECTION_ITEM -> //                v = inflater.inflate((viewType == 0) ? R.layout.list_item_draggable : R.layout.list_item2_draggable, parent, false);
-                inflater.inflate(R.layout.list_item_draggable, parent, false)
-            else -> throw IllegalStateException("Unexpected viewType (= $viewType)")
+        return when (viewType) {
+            TaskwDataProvider.ITEM_VIEW_TYPE_SECTION_HEADER -> {
+                MyTitleViewHolder(inflater.inflate(R.layout.list_section_header, parent, false))
+            }
+            TaskwDataProvider.ITEM_VIEW_TYPE_SECTION_ITEM -> {
+                MySwipeableViewHolder(inflater.inflate(R.layout
+                        .list_item_draggable, parent, false))
+            }
+            else -> {
+                throw IllegalStateException("Unexpected viewType (= $viewType)")
+            }
         }
-        return MyViewHolder(v)
     }
 
     private fun update_label_left_right_attr(view: View) {
@@ -126,15 +119,17 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
         icon.scaleY = 0.7f
     }
 
-    override fun onBindViewHolder(holder: MyViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val item = mProvider.getItem(position)
         when (holder.itemViewType) {
             TaskwDataProvider.ITEM_VIEW_TYPE_SECTION_HEADER -> {
                 val header_item = mProvider.getItem(position)
+                holder as MyTitleViewHolder
                 // set text
                 holder.mTextView.text = header_item.text
             }
             TaskwDataProvider.ITEM_VIEW_TYPE_SECTION_ITEM -> {
+                holder as MySwipeableViewHolder
                 // cleanup
                 (holder.mCalLabelContainer as ViewGroup).removeAllViews()
                 (holder.mTagsLabelContainer as ViewGroup).removeAllViews()
@@ -143,7 +138,9 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
 //                holder.itemView.setOnClickListener(mItemViewOnClickListener);
                 holder.itemView.setOnClickListener { v: View -> onItemViewClick(v, position, true) }
                 // (if the item is *not pinned*, click event comes to the mContainer)
-                holder.mContainer.setOnClickListener { v: View -> onItemViewClick(v, position, false) }
+                holder.mContainer.setOnClickListener { v: View ->
+                    onItemViewClick(v, position, false)
+                }
                 //                holder.mContainer.setOnClickListener(mSwipeableViewContainerOnClickListener);
 
                 // set text
@@ -156,19 +153,16 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
                 val viewContext = holder.mTextView.context
                 val sharedPref = PreferenceManager.getDefaultSharedPreferences(viewContext)
                 val calLabels = item.buildCalLabels(viewContext, sharedPref)
-                if (calLabels.size > 0) {
-//                    holder.mCalLabelContainer.setVisibility(View.VISIBLE);
-//                    holder.mCalLabelContainer.setPadding(35, 0, 35, 0);
-                    for (v in calLabels) {
-                        update_label_left_right_attr(v)
-                        holder.mCalLabelContainer.addView(v)
-                    }
+                calLabels.forEach { v ->
+                    update_label_left_right_attr(v)
+                    holder.mCalLabelContainer.addView(v)
                 }
                 // add tags labels
-                val tags = item.json.optJSONArray("tags")
-                if (tags != null) {
+                val tags = item.json!!.optJSONArray("tags")
+                tags?.let {
                     val v = Helpers.createLabel(viewContext, false,
-                            R.drawable.ic_label_tags, Helpers.join(", ", Helpers.array2List(tags)))
+                            R.drawable.ic_label_tags, Helpers.join("m", Helpers
+                            .array2List(it)))
                     update_label_left_right_attr(v)
                     holder.mTagsLabelContainer.addView(v)
                 }
@@ -178,23 +172,19 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
                 val swipeState = holder.swipeState
                 if (swipeState.isUpdated) {
                     val bgResId: Int = when {
-                        swipeState.isActive -> {
+                        swipeState.isActive ->
                             R.drawable.bg_item_swiping_active_state
-                        }
-                        swipeState.isSwiping -> {
+                        swipeState.isSwiping ->
                             R.drawable.bg_item_swiping_state
-                        }
-                        else -> {
+                        else ->
                             R.drawable.bg_item_normal_state
-                        }
                     }
                     holder.mContainer.setBackgroundResource(bgResId)
                 }
 
                 // set swiping properties
-                holder.setSwipeItemHorizontalSlideAmount(
-                        if (item.isPinned) SwipeableItemConstants
-                                .OUTSIDE_OF_THE_WINDOW_LEFT else 0f)
+                holder.swipeItemHorizontalSlideAmount = if (item.isPinned) SwipeableItemConstants
+                        .OUTSIDE_OF_THE_WINDOW_LEFT else 0f
 
 
                 // set swiping properties
@@ -210,18 +200,18 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
         return mProvider.count
     }
 
-    override fun onGetSwipeReactionType(holder: MyViewHolder, position: Int, x: Int, y: Int): Int {
+    override fun onGetSwipeReactionType(holder: RecyclerView.ViewHolder, position: Int, x: Int, y: Int): Int {
 //        return Swipeable.REACTION_CAN_SWIPE_LEFT | Swipeable.REACTION_MASK_START_SWIPE_LEFT |
 //                Swipeable.REACTION_CAN_SWIPE_RIGHT | Swipeable.REACTION_MASK_START_SWIPE_RIGHT |
 //                Swipeable.REACTION_START_SWIPE_ON_LONG_PRESS;
         return SwipeableItemConstants.REACTION_CAN_SWIPE_BOTH_H
     }
 
-    override fun onSwipeItemStarted(holder: MyViewHolder, position: Int) {
-        notifyDataSetChanged()
+    override fun onSwipeItemStarted(holder: RecyclerView.ViewHolder, position: Int) {
+//        notifyDataSetChanged()
     }
 
-    override fun onSetSwipeBackground(holder: MyViewHolder, position: Int, type: Int) {
+    override fun onSetSwipeBackground(holder: RecyclerView.ViewHolder, position: Int, type: Int) {
         var bgRes = 0
         when (type) {
             SwipeableItemConstants.DRAWABLE_SWIPE_NEUTRAL_BACKGROUND -> bgRes = R.drawable.bg_swipe_item_neutral
@@ -231,7 +221,7 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
         holder.itemView.setBackgroundResource(bgRes)
     }
 
-    override fun onSwipeItem(holder: MyViewHolder, position: Int, result: Int): SwipeResultAction? {
+    override fun onSwipeItem(holder: RecyclerView.ViewHolder, position: Int, result: Int): SwipeResultAction? {
         Log.d(TAG, "onSwipeItem(position = $position, result = $result)")
         return when (result) {
             SwipeableItemConstants.RESULT_SWIPED_RIGHT -> if (mProvider.getItem(position).isPinned) {
@@ -255,33 +245,6 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
         }
     }
 
-    fun update(list: List<JSONObject?>?, info: ReportInfo?) {
-//        this.info = info;
-//        boolean hasUrgency = info.fields.containsKey("urgency");
-//        if (hasUrgency && !list.isEmpty()) { // Search
-//            double min = list.get(0).optDouble("urgency");
-//            double max = min;
-//            for (JSONObject json : list) { // Find min and max
-//                double urg = json.optDouble("urgency");
-//                if (min > urg) {
-//                    min = urg;
-//                }
-//                if (max < urg) {
-//                    max = urg;
-//                }
-//            }
-//            urgMin = (int) Math.floor(min);
-//            urgMax = (int) Math.ceil(max);
-//        }
-//        morph(list, data, uuidAcc);
-//        data.clear();
-//        data.addAll(list);
-    }
-
-    private fun inflateTaskDetailView(json: JSONObject, context: Context): View {
-        return View.inflate(context, R.layout.item_one_task_detail, null)
-    }
-
     private fun populateTaskDetailView(json: JSONObject?, context: Context?, views: View): View {
         if (json == null && context != null) return views
         val urgMin = 0
@@ -299,9 +262,7 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
         val task_status_btn = views.findViewById<ImageView>(R.id.task_status_btn)
         task_status_btn.setImageResource(Helpers.status2icon(status))
         task_status_btn.setOnClickListener { v: View? ->
-            if (null != listener) {
-                listener!!.onStatus(json)
-            }
+            listener?.onStatus(json)
         }
 
         // clear previous contents
@@ -311,7 +272,7 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
         val sharedPref = PreferenceManager.getDefaultSharedPreferences(context)
         bindLongCopyText(json, views.findViewById(R.id.task_description),
                 json.optString("description"))
-        for ((key, value) in info!!.fields) {
+        for ((key, value) in info.fields) {
             when (key.toLowerCase()) {
                 "description" -> {
                     // Set desc
@@ -339,9 +300,7 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
                                             .setTitle("Remove annotation")
                                             .setMessage("Remove annotation '$ann'?") //                                                    .setIcon(android.R.drawable.ic_dialog_alert)
                                             .setPositiveButton(android.R.string.yes) { dialog: DialogInterface?, whichButton: Int ->
-                                                if (null != listener) {
-                                                    listener!!.onDenotate(json, ann)
-                                                }
+                                                listener?.onDenotate(json, ann)
                                             }
                                             .setNegativeButton(android.R.string.no, null).show()
                                 }
@@ -354,20 +313,20 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
                 }
                 "id" -> (views.findViewById<View>(R.id.task_id) as TextView).text = String.format("[%d]", json.optInt("id", -1))
                 "priority" -> {
-                    val index = info!!.priorities.indexOf(json.optString("priority", ""))
+                    val index = info.priorities.indexOf(json.optString("priority", ""))
                     val pb_priority = views.findViewById<ProgressBar>(R.id.task_priority)
                     if (index == -1) {
                         pb_priority.max = 0
                         pb_priority.progress = 0
                     } else {
-                        pb_priority.max = info!!.priorities.size - 1
-                        pb_priority.progress = info!!.priorities.size - index - 1
+                        pb_priority.max = info.priorities.size - 1
+                        pb_priority.progress = info.priorities.size - index - 1
                     }
                 }
                 "urgency" -> {
                     val pb_urgency = views.findViewById<ProgressBar>(R.id.task_urgency)
                     pb_urgency.max = urgMax - urgMin
-                    pb_urgency.progress = Math.round(json.optDouble("urgency")).toInt() - urgMin
+                    pb_urgency.progress = json.optDouble("urgency").roundToInt() - urgMin
                 }
                 "due" -> Helpers.addLabelWithInsert(context, views, "due", true, R.drawable.ic_label_due,
                         Helpers.asDate(json.optString("due"), sharedPref))
@@ -377,7 +336,7 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
                         Helpers.asDate(json.optString("scheduled"), sharedPref))
                 "recur" -> {
                     var recur = json.optString("recur")
-                    if (!TextUtils.isEmpty(recur) && info!!.fields.containsKey("until")) {
+                    if (!TextUtils.isEmpty(recur) && info.fields.containsKey("until")) {
                         val until = Helpers.asDate(json.optString("until"), sharedPref)
                         if (!TextUtils.isEmpty(until)) {
                             recur += String.format(" ~ %s", until)
@@ -396,9 +355,7 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
                         val start_stop_btn = views.findViewById<View>(R.id.task_start_stop_btn)
                         start_stop_btn.visibility = View.VISIBLE
                         start_stop_btn.setOnClickListener { v: View? ->
-                            if (null != listener) {
-                                listener!!.onStartStop(json)
-                            }
+                            listener?.onStartStop(json)
                         }
                         (start_stop_btn as ImageView).setImageResource(if (isStarted) R.drawable.ic_action_stop else R.drawable.ic_action_start)
                     }
@@ -406,29 +363,20 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
             }
         }
         views.findViewById<View>(R.id.task_edit_btn).setOnClickListener { v: View? ->
-            if (null != listener) {
-                listener!!.onEdit(json)
-            }
+            listener?.onEdit(json)
         }
         views.findViewById<View>(R.id.task_delete_btn).setOnClickListener { v: View? ->
-//                    if (null != listener) {
-//                        listener.onDelete(json);
-//                    }
             AlertDialog.Builder(context)
                     .setTitle("Delete task")
                     .setMessage("Do you really want to delete this task?")
                     .setIcon(android.R.drawable.ic_dialog_alert)
-                    .setPositiveButton(android.R.string.yes) { dialog: DialogInterface?, whichButton: Int ->
-                        if (null != listener) {
-                            listener!!.onDelete(json)
-                        }
+                    .setPositiveButton(android.R.string.yes) { _, _ ->
+                        listener?.onDelete(json)
                     }
                     .setNegativeButton(android.R.string.no, null).show()
         }
-        views.findViewById<View>(R.id.task_annotate_btn).setOnClickListener { v: View? ->
-            if (null != listener) {
-                listener!!.onAnnotate(json)
-            }
+        views.findViewById<View>(R.id.task_annotate_btn).setOnClickListener {
+            listener?.onAnnotate(json)
         }
         return views
     }
@@ -464,42 +412,45 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
         fun onLabelClick(json: JSONObject?, type: String?, longClick: Boolean)
     }
 
-    class MyViewHolder(v: View) : AbstractSwipeableItemViewHolder(v) {
-        var mContainer: FrameLayout
-        var mTextView: TextView
-        var mAnnoFlag: ImageView
-        var mStartedFlag: TextView
-        var mCalLabelContainer: LinearLayout
-        var mTagsLabelContainer: LinearLayout
+
+    interface MyViewHolder {
+        val mTextView: TextView
+    }
+
+    class MyTitleViewHolder(v: View) : MyViewHolder, RecyclerView.ViewHolder(v) {
+        override val mTextView: TextView = v.findViewById(R.id.task_description)
+    }
+
+    class MySwipeableViewHolder(v: View) : MyViewHolder, AbstractSwipeableItemViewHolder(v) {
+        override val mTextView: TextView = v.findViewById(R.id.task_description)
+        var mContainer: FrameLayout = v.findViewById(R.id.container)
+        var mAnnoFlag: ImageView = v.findViewById(R.id.task_annotations_flag)
+        var mStartedFlag: TextView = v.findViewById(R.id.task_started_flag)
+        var mCalLabelContainer: LinearLayout = v.findViewById(R.id.cal_label_container)
+        var mTagsLabelContainer: LinearLayout = v.findViewById(R.id.tags_label_container)
+
         override fun getSwipeableContainerView(): View {
             return mContainer
         }
 
-        init {
-            mContainer = v.findViewById(R.id.container)
-            mAnnoFlag = v.findViewById(R.id.task_annotations_flag)
-            mStartedFlag = v.findViewById(R.id.task_started_flag)
-            mTextView = v.findViewById(R.id.task_description)
-            mCalLabelContainer = v.findViewById(R.id.cal_label_container)
-            mTagsLabelContainer = v.findViewById(R.id.tags_label_container)
-        }
     }
 
-    private class SwipeLeftResultAction internal constructor(private var mAdapter: SwipListAdapter?, private val mPosition: Int) : SwipeResultActionMoveToSwipedDirection() {
+    private class SwipeLeftResultAction internal constructor(private val mAdapter:
+                                                             SwipeListAdapter, private val mPosition: Int) : SwipeResultActionMoveToSwipedDirection() {
         private var mSetPinned = false
         override fun onPerformAction() {
             super.onPerformAction()
-            val item = mAdapter!!.mProvider.getItem(mPosition)
+            val item = mAdapter.mProvider.getItem(mPosition)
             if (!item.isPinned) {
                 item.isPinned = true
-                mAdapter!!.notifyItemChanged(mPosition)
+                mAdapter.notifyItemChanged(mPosition)
                 mSetPinned = true
             }
         }
 
         override fun onSlideAnimationEnd() {
             super.onSlideAnimationEnd()
-            if (mSetPinned && mAdapter!!.eventListener != null) {
+            if (mSetPinned && mAdapter.eventListener != null) {
 //                mAdapter.mEventListener.onItemPinned(mPosition);
             }
         }
@@ -507,25 +458,26 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
         override fun onCleanUp() {
             super.onCleanUp()
             // clear the references
-            mAdapter = null
+//            mAdapter = null
         }
 
     }
 
-    private class SwipeRightResultAction internal constructor(private var mAdapter: SwipListAdapter?, private val mPosition: Int) : SwipeResultActionRemoveItem() {
+    private class SwipeRightResultAction internal constructor(private val mAdapter:
+                                                              SwipeListAdapter, private val mPosition: Int) : SwipeResultActionRemoveItem() {
         override fun onPerformAction() {
             super.onPerformAction()
-            if (null != mAdapter!!.listener) {
+            mAdapter.listener?.let {
+                it.onStatus(mAdapter.mProvider.getItem(mPosition).json)
                 // mark as done
-                mAdapter!!.listener!!.onStatus(mAdapter!!.mProvider.getItem(mPosition).json)
-                mAdapter!!.mProvider.removeItem(mPosition)
-                mAdapter!!.notifyItemRemoved(mPosition)
+                mAdapter.mProvider.removeItem(mPosition)
+                mAdapter.notifyItemRemoved(mPosition)
             }
         }
 
         override fun onSlideAnimationEnd() {
             super.onSlideAnimationEnd()
-            if (mAdapter!!.eventListener != null) {
+            if (mAdapter.eventListener != null) {
 //                mAdapter.mEventListener.onItemRemoved(mPosition);
             }
         }
@@ -533,37 +485,36 @@ import soraxas.taskw.ui.SwipListAdapter.MyViewHolder
         override fun onCleanUp() {
             super.onCleanUp()
             // clear the references
-            mAdapter = null
+//            mAdapter = null
         }
 
     }
 
-    private class UnpinResultAction internal constructor(private var mAdapter: SwipListAdapter?, private val mPosition: Int) : SwipeResultActionDefault() {
+    private class UnpinResultAction internal constructor(private val mAdapter:
+                                                         SwipeListAdapter, private val mPosition: Int) : SwipeResultActionDefault() {
         override fun onPerformAction() {
             super.onPerformAction()
-            val item = mAdapter!!.mProvider.getItem(mPosition)
+            val item = mAdapter.mProvider.getItem(mPosition)
             if (item.isPinned) {
                 item.isPinned = false
-                mAdapter!!.notifyItemChanged(mPosition)
+                mAdapter.notifyItemChanged(mPosition)
             }
         }
 
         override fun onCleanUp() {
             super.onCleanUp()
             // clear the references
-            mAdapter = null
+//            mAdapter = null
         }
-
     }
 
     companion object {
         private const val TAG = "MySwipeableItemAdapter"
-        var logger = Logger.forClass(SwipListAdapter::class.java)
+        var logger = Logger.forClass(SwipeListAdapter::class.java)
     }
 
     init {
         //        mItemViewOnClickListener = v -> onItemViewClick(v);
-
         // SwipeableItemAdapter requires stable ID, and also
         // have to implement the getItemId() method appropriately.
         setHasStableIds(true)
