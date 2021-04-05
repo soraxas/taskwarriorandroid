@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import android.widget.*
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.RecyclerView
+import com.afollestad.materialdialogs.MaterialDialog
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.SwipeableItemAdapter
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.SwipeableItemConstants
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.action.SwipeResultAction
@@ -54,6 +55,9 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
     var updateCurTaskDetailView: Runnable? = null
 
     @JvmField
+    var curTaskDetailViewDialog: MaterialDialog? = null
+
+    @JvmField
     var listener: ItemListener? = null
     var eventListener: EventListener? = null
     private val mItemViewOnClickListener: View.OnClickListener? = null
@@ -74,7 +78,7 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
             }
         }
         updateCurTaskDetailView!!.run()
-        showD(context, taskDetailView)
+        curTaskDetailViewDialog = showD(context, taskDetailView)
 
     }
 
@@ -128,8 +132,9 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
 //                holder.itemView.setOnClickListener(mItemViewOnClickListener);
                 holder.itemView.setOnClickListener { v: View -> onItemViewClick(v, position, true) }
                 // (if the item is *not pinned*, click event comes to the mContainer)
-                holder.mContainer.setOnClickListener { v: View -> onItemViewClick(v,
-                        position, false)
+                holder.mContainer.setOnClickListener { v: View ->
+                    onItemViewClick(v,
+                            position, false)
                 }
                 //                holder.mContainer.setOnClickListener(mSwipeableViewContainerOnClickListener);
 
@@ -362,6 +367,7 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
                     .setIcon(android.R.drawable.ic_dialog_alert)
                     .setPositiveButton(android.R.string.yes) { _, _ ->
                         listener?.onDelete(json)
+                        curTaskDetailViewDialog?.dismiss()
                     }
                     .setNegativeButton(android.R.string.no, null).show()
         }

@@ -481,7 +481,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
     private fun add(vararg pairs: Pair<String, String>) {
         if (null == ac) return
         val intent = Intent(this, EditorActivity::class.java)
-        showD(this, View.inflate(this, R.layout.activity_editor, null))
+//        showD(this, View.inflate(this, R.layout.activity_editor, null))
         ac!!.intentForEditor(intent, null)
         if (null != pairs) {
             val data = Bundle()

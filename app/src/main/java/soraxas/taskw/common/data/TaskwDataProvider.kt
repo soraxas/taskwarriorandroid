@@ -7,11 +7,11 @@ import android.util.Pair
 import android.view.View
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.RecyclerViewSwipeManager
 import org.json.JSONObject
-import soraxas.taskw.BuildConfig
 import soraxas.taskw.R
 import soraxas.taskw.common.Helpers
 import java.util.*
 import kotlin.collections.HashMap
+import kotlin.collections.LinkedHashMap
 
 /*
  *    Copyright (C) 2015 Haruki Hasegawa
@@ -29,55 +29,47 @@ import kotlin.collections.HashMap
  *    limitations under the License.
  */
 class TaskwDataProvider {
-    val mData: MutableList<TaskwData> = ArrayList()
-    val mUuidToData: MutableMap<String, TaskwData> = HashMap()
+    var mUUIDtoData: LinkedHashMap<String, TaskwData> = LinkedHashMap()
+    var mUUIDtoDataValuesArray: MutableList<TaskwData> = ArrayList()
 
     private var mLastRemovedData: TaskwData? = null
     private var mLastRemovedPosition = -1
     private val useProjectAsDivider = true
+
+    private fun getOrCreateItem(item_type: Int, uuid: String, json: JSONObject,
+                                swipeReaction: Int): TaskwData {
+        mUUIDtoData[uuid]?.let {
+            if (it.json != json) {
+                // need to update existing items value
+                it.set_contained_values(item_type, uuid, json, swipeReaction)
+            }
+            return it
+        }
+        // need to create a new item
+        return TaskwData(item_type, uuid, json, swipeReaction)
+    }
 
     fun update_report_info(list: List<JSONObject>) {
 //
 //        int urgMin;
 //        int urgMax;
 //
-//        boolean hasUrgency = info.fields.containsKey("urgency");
-//        if (hasUrgency && !list.isEmpty()) { // Search
-//            double min = list.get(0).optDouble("urgency");
-//            double max = min;
-//            for (JSONObject json : list) { // Find min and max
-//                double urg = json.optDouble("urgency");
-//                if (min > urg) {
-//                    min = urg;
-//                }
-//                if (max < urg) {
-//                    max = urg;
-//                }
-//            }
-//            urgMin = (int) Math.floor(min);
-//            urgMax = (int) Math.ceil(max);
-//        }
-//        morph(list, data, uuidAcc);
-
-
-        mData.clear()
-        mUuidToData.clear()
-
 //    var jsonData: MutableList<JSONObject?> = ArrayList()
 //    private val mData: MutableList<TaskwData> = ArrayList()
+        val swipeReaction = RecyclerViewSwipeManager.REACTION_CAN_SWIPE_UP or RecyclerViewSwipeManager.REACTION_CAN_SWIPE_DOWN
+
+        val newDataContainer: MutableList<TaskwData> = ArrayList()
+        val newUUIDtoData = LinkedHashMap<String, TaskwData>()
 
         if (!useProjectAsDivider) {
             for (json in list) {
-                val swipeReaction = RecyclerViewSwipeManager.REACTION_CAN_SWIPE_UP or RecyclerViewSwipeManager.REACTION_CAN_SWIPE_DOWN
-                val data = TaskwData(ITEM_VIEW_TYPE_SECTION_ITEM, json,
-                        swipeReaction)
-                mData.add(data)
-                mUuidToData[data.uuidStr] = data
+                val uuid: String = json.optString("uuid")
+                newUUIDtoData[uuid] = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_ITEM,
+                        uuid, json, swipeReaction)
             }
         } else {
             // a map of list of tasks (where each list of task is a project)
             val project: MutableMap<String, Pair<MutableList<JSONObject>, Double>?> = HashMap()
-            var id = 0
             for (json in list) {
                 //
                 val proj = json.optString("project", "")
@@ -99,172 +91,133 @@ class TaskwDataProvider {
             ) { a: String?, b: String? -> project[a]!!.second.compareTo(project[b]!!.second) }
 
             // put back into result
-            for (proj_key in sorted_proj) {
-                mData.add(TaskwData(ITEM_VIEW_TYPE_SECTION_HEADER,
-                        if (proj_key == "") "[no project]" else proj_key))
-                for (json in project[proj_key]!!.first) {
-                    val swipeReaction = RecyclerViewSwipeManager.REACTION_CAN_SWIPE_UP or RecyclerViewSwipeManager.REACTION_CAN_SWIPE_DOWN
-                    val data = TaskwData(ITEM_VIEW_TYPE_SECTION_ITEM,
-                            json, swipeReaction)
-                    mData.add(data)
-                    mUuidToData[data.uuidStr] = data
+            for (projKey in sorted_proj) {
+                run {
+                    // add the header
+                    val projKeyAsUuid = when (projKey) {
+                        "" -> "[no project]"
+                        else -> projKey
+                    }
+                    newUUIDtoData[projKeyAsUuid] = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_HEADER,
+                            projKeyAsUuid,
+                            JSONObject(), swipeReaction)
+                }
+                for (json in project[projKey]!!.first) {
+                    val uuid: String = json.optString("uuid")
+                    newUUIDtoData[uuid] = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_ITEM, uuid, json,
+                            swipeReaction)
                 }
             }
         }
+
+        // set the member variable as the newly built (and ordered) result
+        mUUIDtoData = newUUIDtoData
+        mUUIDtoDataValuesArray = ArrayList(newUUIDtoData.values)
     }
 
     fun getJsonWithTaskUuid(uuid: String): JSONObject? {
-        var json: JSONObject? = null
-        for (data in mData) {
-            if (data.json.optString("uuid") == uuid) {
-                json = data.json
-                break
-            }
-        }
-        return json
+        return mUUIDtoData[uuid]?.json
     }
 
     val count: Int
-        get() = mData.size
+        get() = mUUIDtoDataValuesArray.size
 
     fun getItem(index: Int): TaskwData {
         if (index < 0 || index >= count) {
             throw IndexOutOfBoundsException("index = $index")
         }
-        return mData[index]
+        return mUUIDtoDataValuesArray[index]
     }
 
-    fun undoLastRemoval(): Int {
-        return if (mLastRemovedData != null) {
-            val insertedPosition: Int
-            insertedPosition = if (mLastRemovedPosition >= 0 && mLastRemovedPosition < mData.size) {
-                mLastRemovedPosition
-            } else {
-                mData.size
-            }
-            mData.add(insertedPosition, mLastRemovedData!!)
-            mLastRemovedData = null
-            mLastRemovedPosition = -1
-            insertedPosition
-        } else {
-            -1
-        }
-    }
+//    fun undoLastRemoval(): Int {
+//        return if (mLastRemovedData != null) {
+//            val insertedPosition: Int
+//            insertedPosition = if (mLastRemovedPosition >= 0 && mLastRemovedPosition < mData.size) {
+//                mLastRemovedPosition
+//            } else {
+//                mData.size
+//            }
+//            mData.add(insertedPosition, mLastRemovedData!!)
+//            mLastRemovedData = null
+//            mLastRemovedPosition = -1
+//            insertedPosition
+//        } else {
+//            -1
+//        }
+//    }
 
-    fun moveItem(fromPosition: Int, toPosition: Int) {
-        if (fromPosition == toPosition) {
-            return
-        }
-        val item = mData.removeAt(fromPosition)
-        mData.add(toPosition, item)
-        mLastRemovedPosition = -1
-    }
-
-    fun swapItem(fromPosition: Int, toPosition: Int) {
-        if (fromPosition == toPosition) {
-            return
-        }
-        Collections.swap(mData, toPosition, fromPosition)
-        mLastRemovedPosition = -1
-    }
+//    fun moveItem(fromPosition: Int, toPosition: Int) {
+//        if (fromPosition == toPosition) {
+//            return
+//        }
+//        val item = mData.removeAt(fromPosition)
+//        mData.add(toPosition, item)
+//        mLastRemovedPosition = -1
+//    }
+//
+//    fun swapItem(fromPosition: Int, toPosition: Int) {
+//        if (fromPosition == toPosition) {
+//            return
+//        }
+//        Collections.swap(mData, toPosition, fromPosition)
+//        mLastRemovedPosition = -1
+//    }
 
     fun removeItem(position: Int) {
-        val removedItem = mData.removeAt(position)
+        // this might make the view be in inconsistent state compared to the hashmap
+        val removedItem = mUUIDtoDataValuesArray.removeAt(position)
         mLastRemovedData = removedItem
         mLastRemovedPosition = position
     }
 
     class TaskwData {
-        val text: String
+        lateinit var text: String
         var hasAnno = false
         var hasStarted = false
-        var json: JSONObject
+        lateinit var json: JSONObject
         var viewType = 0
             private set
         var isPinned = false
-        val uuidStr: String
-        val uuid: UUID
-        val id: Long by lazy {
-            _uuid_to_long()
-        }
+        lateinit var uuidStr: String
+        lateinit var uuid: UUID
+        var id: Long = -1
 
         private fun _uuid_to_long(): Long {
             return uuid.mostSignificantBits and kotlin.Long.MAX_VALUE
         }
 
-        internal constructor(viewType: Int, description: String) {
-            if (BuildConfig.DEBUG && viewType != ITEM_VIEW_TYPE_SECTION_HEADER) {
-                throw AssertionError("Assertion failed")
-            }
-            text = description
-            json = JSONObject()  // placeholder
-            uuidStr = description
-            uuid = UUID.nameUUIDFromBytes(text.toByteArray())
+        internal constructor(viewType: Int, uuid: String, json: JSONObject,
+                             swipeReaction:
+                             Int) {
+            set_contained_values(viewType, uuid, json, swipeReaction)
         }
 
-        internal constructor(viewType: Int, json: JSONObject, swipeReaction: Int) {
-            this.json = json
-            this.viewType = viewType
-            text = makeText(json.optString("description"), swipeReaction)
-            hasStarted = !TextUtils.isEmpty(json.optString("start"))
-            hasAnno = json.optJSONArray("annotations") != null
-            uuidStr = json.optString("uuid")
-            uuid = UUID.fromString(uuidStr)
-
-
-//            for (Iterator<String> it = json.keys(); it.hasNext(); ) {
-//                String key = it.next();
-//
-//                switch (key) {
-//                    case "description":
-//                        break;
-//                    case "id":
-//                        ((TextView) views.findViewById(R.id.task_id)).setText(String.format("[%d]", json.optInt("id", -1)));
-//                        break;
-//                    case "priority":
-//                        int index = info.priorities.indexOf(json.optString("priority", ""));
-//                        ProgressBar pb_priority = views.findViewById(R.id.task_priority);
-//                        if (index == -1) {
-//                            pb_priority.setMax(0);
-//                            pb_priority.setProgress(0);
-//                        } else {
-//                            pb_priority.setMax(info.priorities.size() - 1);
-//                            pb_priority.setProgress(info.priorities.size() - index - 1);
-//                        }
-//                        break;
-//                    case "urgency":
-//                        ProgressBar pb_urgency = views.findViewById(R.id.task_urgency);
-//                        pb_urgency.setMax(urgMax - urgMin);
-//                        pb_urgency.setProgress((int) Math.round(json.optDouble("urgency")) - urgMin);
-//                        break;
-//                    case "due":
-//                        addLabel(context, views, "due", true, R.drawable.ic_label_due,
-//                                asDate(json.optString("due"), sharedPref));
-//                        break;
-//                    case "wait":
-//                        addLabel(context, views, "wait", true, R.drawable.ic_label_wait,
-//                                asDate(json.optString("wait"), sharedPref));
-//                        break;
-//                    case "scheduled":
-//                        addLabel(context, views, "scheduled", true, R.drawable.ic_label_scheduled,
-//                                asDate(json.optString("scheduled"), sharedPref));
-//                        break;
-//                    case "recur":
-//                        String recur = json.optString("recur");
-//                        if (!TextUtils.isEmpty(recur) && info.fields.containsKey("until")) {
-//                            String until = asDate(json.optString("until"), sharedPref);
-//                            if (!TextUtils.isEmpty(until)) {
-//                                recur += String.format(" ~ %s", until);
-//                            }
-//                        }
-//                        addLabel(context, views, "recur", true, R.drawable.ic_label_recur, recur);
-//                        break;
-//                    case "tags":
-//                        addLabel(context, views, "tags", false, R.drawable.ic_label_tags, join(", ", array2List(
-//                                json.optJSONArray("tags"))));
-//                        break;
-//                }
-//            }
+        fun set_contained_values(viewType: Int, uuidStr: String, json: JSONObject,
+                                 swipeReaction: Int) {
+            when (viewType) {
+                ITEM_VIEW_TYPE_SECTION_HEADER -> {
+                    this.json = json
+                    this.text = uuidStr
+                    this.uuidStr = uuidStr
+                    // header's uuid is not a valid uuid format. We will construct a
+                    // uuid with its byte-array instead.
+                    this.uuid = UUID.nameUUIDFromBytes(uuidStr.toByteArray())
+                    id = _uuid_to_long()
+                }
+                ITEM_VIEW_TYPE_SECTION_ITEM -> {
+                    this.json = json
+                    this.viewType = viewType
+                    text = makeText(json.optString("description"), swipeReaction)
+                    hasStarted = !TextUtils.isEmpty(json.optString("start"))
+                    hasAnno = json.optJSONArray("annotations") != null
+                    this.uuidStr = uuidStr
+                    uuid = UUID.fromString(uuidStr)
+                    id = _uuid_to_long()
+                }
+                else -> {
+                    throw AssertionError("Assertion failed")
+                }
+            }
         }
 
         fun buildCalLabels(context: Context,
