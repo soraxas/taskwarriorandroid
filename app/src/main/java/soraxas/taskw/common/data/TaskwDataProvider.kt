@@ -72,7 +72,7 @@ class TaskwDataProvider {
                 val data = TaskwData(ITEM_VIEW_TYPE_SECTION_ITEM, json,
                         swipeReaction)
                 mData.add(data)
-                mUuidToData[data.uuid] = data
+                mUuidToData[data.uuidStr] = data
             }
         } else {
             // a map of list of tasks (where each list of task is a project)
@@ -107,7 +107,7 @@ class TaskwDataProvider {
                     val data = TaskwData(ITEM_VIEW_TYPE_SECTION_ITEM,
                             json, swipeReaction)
                     mData.add(data)
-                    mUuidToData[data.uuid] = data
+                    mUuidToData[data.uuidStr] = data
                 }
             }
         }
@@ -182,9 +182,15 @@ class TaskwDataProvider {
         var viewType = 0
             private set
         var isPinned = false
-        val id: Long
-        val uuid: String
+        val uuidStr: String
+        val uuid: UUID
+        val id: Long by lazy {
+            _uuid_to_long()
+        }
 
+        private fun _uuid_to_long(): Long {
+            return uuid.mostSignificantBits and kotlin.Long.MAX_VALUE
+        }
 
         internal constructor(viewType: Int, description: String) {
             if (BuildConfig.DEBUG && viewType != ITEM_VIEW_TYPE_SECTION_HEADER) {
@@ -192,8 +198,8 @@ class TaskwDataProvider {
             }
             text = description
             json = JSONObject()  // placeholder
-            uuid = ""
-            id = -1
+            uuidStr = description
+            uuid = UUID.nameUUIDFromBytes(text.toByteArray())
         }
 
         internal constructor(viewType: Int, json: JSONObject, swipeReaction: Int) {
@@ -202,9 +208,9 @@ class TaskwDataProvider {
             text = makeText(json.optString("description"), swipeReaction)
             hasStarted = !TextUtils.isEmpty(json.optString("start"))
             hasAnno = json.optJSONArray("annotations") != null
+            uuidStr = json.optString("uuid")
+            uuid = UUID.fromString(uuidStr)
 
-            uuid = json.optString("uuid")
-            id = UUID.fromString(uuid).mostSignificantBits and Long.MAX_VALUE
 
 //            for (Iterator<String> it = json.keys(); it.hasNext(); ) {
 //                String key = it.next();

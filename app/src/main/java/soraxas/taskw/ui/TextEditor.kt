@@ -26,7 +26,7 @@ import java.io.InputStream
  */
 class TextEditor : AppCompatActivity() {
     var form = FormController(ActivityViewFinder(this))
-    private var toolbar: Toolbar? = null
+    private lateinit var toolbar: Toolbar
     var controller = controller()
     var logger = Logger.forInstance(this)!!
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,7 +47,7 @@ class TextEditor : AppCompatActivity() {
     }
 
     private fun updateToolbar() {
-        toolbar!!.subtitle = form.getValue(App.KEY_TEXT_TARGET, String::class.java)
+        toolbar.subtitle = form.getValue(App.KEY_TEXT_TARGET, String::class.java)
     }
 
     private fun loadText(intent: Intent) {
@@ -70,7 +70,7 @@ class TextEditor : AppCompatActivity() {
         }
         val finalFile: InputStream = file
         GlobalScope.launch {
-            val result: String = controller.readFile(finalFile)
+            val result: String? = controller.readFile(finalFile)
             logger.d("File loaded:", _uri, true)
             if (null == result) {
                 controller.toastMessage("File IO error", true)
