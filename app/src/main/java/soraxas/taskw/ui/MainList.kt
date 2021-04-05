@@ -1,5 +1,7 @@
 package soraxas.taskw.ui
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.drawable.NinePatchDrawable
 import android.os.Build
 import android.os.Bundle
@@ -64,7 +66,7 @@ class MainList : Fragment() {
 
         //adapter
         mDataProvider = TaskwDataProvider()
-        mAdapter = SwipeListAdapter(mDataProvider)
+        mAdapter = SwipeListAdapter(mDataProvider, this)
         mAdapter.eventListener = object : SwipeListAdapter.EventListener {
             override fun onItemRemoved(position: Int) {
 //                ((SwipeOnLongPressExampleActivity) getActivity()).onItemRemoved(position);
@@ -101,6 +103,38 @@ class MainList : Fragment() {
         mRecyclerViewSwipeManager.attachRecyclerView(mRecyclerView)
     }
 
+    val prefFileName: String = "taskListPref"
+
+    val pinnedTasksPrefKey: String = "pinnedTasksList"
+
+    fun getPinnedTasks(): Set<String> {
+        context?.let {
+            val pref: SharedPreferences = it.getSharedPreferences(prefFileName, Context.MODE_PRIVATE)
+            return pref.getStringSet(pinnedTasksPrefKey, HashSet<String>())!!
+        }
+        return HashSet()
+    }
+
+    fun togglePinnedTask(uuid: String): Boolean {
+        val sharedPref = context?.getSharedPreferences(prefFileName,
+                Context.MODE_PRIVATE) ?: return false
+        with(sharedPref.edit()) {
+            // make a copy as we should not modify the result returned by sharedPref
+            // (or else it wont detect any new changes)
+            val pinnedTasks = HashSet(sharedPref.getStringSet(pinnedTasksPrefKey,
+                    HashSet<String>())!!)
+            // toggle task
+            if (uuid in pinnedTasks)
+                pinnedTasks.remove(uuid)
+            else
+                pinnedTasks.add(uuid)
+            putStringSet(pinnedTasksPrefKey, pinnedTasks)
+            apply()
+//            commit()
+        }
+        return true
+    }
+
     fun load(form: FormController, afterLoad: Runnable?) {
         workerScope.launch {
             // load the chosen report
@@ -124,7 +158,7 @@ class MainList : Fragment() {
             val list = controller.accountController(account).taskList(mAdapter.info.query)
             mAdapter.info.sort(list) // Sorted
             // according to report spec.
-            mDataProvider.update_report_info(list)
+            mDataProvider.update_report_info(list, getPinnedTasks())
             mAdapter.updateCurTaskDetailView?.run()
             notifyUiUpdate()
         }

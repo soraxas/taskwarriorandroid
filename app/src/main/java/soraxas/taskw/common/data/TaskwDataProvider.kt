@@ -49,7 +49,7 @@ class TaskwDataProvider {
         return TaskwData(item_type, uuid, json, swipeReaction)
     }
 
-    fun update_report_info(list: List<JSONObject>) {
+    fun update_report_info(list: List<JSONObject>, allPinnedTasks: Set<String>) {
 //
 //        int urgMin;
 //        int urgMax;
@@ -61,6 +61,8 @@ class TaskwDataProvider {
         val newDataContainer: MutableList<TaskwData> = ArrayList()
         val newUUIDtoData = LinkedHashMap<String, TaskwData>()
 
+        val pinnedTasks: MutableList<JSONObject> = ArrayList()
+
         if (!useProjectAsDivider) {
             for (json in list) {
                 val uuid: String = json.optString("uuid")
@@ -71,6 +73,12 @@ class TaskwDataProvider {
             // a map of list of tasks (where each list of task is a project)
             val project: MutableMap<String, Pair<MutableList<JSONObject>, Double>?> = HashMap()
             for (json in list) {
+                val uuid = json.optString("uuid")
+                if (uuid in allPinnedTasks) {
+                    // retrieve the pinned tasks and display them at the front
+                    pinnedTasks.add(json)
+                    continue
+                }
                 //
                 val proj = json.optString("project", "")
                 var urgency = json.optDouble("urgency")
@@ -86,10 +94,15 @@ class TaskwDataProvider {
                 project[proj] = Pair(proj_container, urgency)
             }
             // sort by urgency
-            val sorted_proj: List<String> = ArrayList(project.keys)
-            Collections.sort(sorted_proj
-            ) { a: String?, b: String? -> project[a]!!.second.compareTo(project[b]!!.second) }
+            val sorted_proj: MutableList<String> = ArrayList(project.keys)
+            sorted_proj.sortWith(
+                    Comparator { a: String?, b: String? -> project[a]!!.second.compareTo(project[b]!!.second) })
 
+            // inject the pinned task at the very front
+            if (pinnedTasks.isNotEmpty()) {
+                sorted_proj.add(0, "[pinned]")
+                project["[pinned]"] = Pair(pinnedTasks, 0.0)
+            }
             // put back into result
             for (projKey in sorted_proj) {
                 run {
@@ -225,23 +238,23 @@ class TaskwDataProvider {
         fun buildCalLabels(context: Context,
                            sharedPref: SharedPreferences?): List<View> {
             val views: MutableList<View> = ArrayList()
-            val it = json!!.keys()
+            val it = json.keys()
             while (it.hasNext()) {
                 val key = it.next()
                 var view: View
                 if (key == "due")
                     view = Helpers.createLabel(context, true, R.drawable.ic_label_due,
-                            Helpers.asDate(json!!.optString("due"), sharedPref))
+                            Helpers.asDate(json.optString("due"), sharedPref))
                 else if (key == "wait")
                     view = Helpers.createLabel(context, true, R.drawable.ic_label_wait,
-                            Helpers.asDate(json!!.optString("wait"), sharedPref))
+                            Helpers.asDate(json.optString("wait"), sharedPref))
                 else if (key == "scheduled")
                     view = Helpers.createLabel(context, true,
                             R.drawable.ic_label_scheduled,
-                            Helpers.asDate(json!!.optString("scheduled"), sharedPref))
+                            Helpers.asDate(json.optString("scheduled"), sharedPref))
                 else if (key == "recur") {
-                    var recur = json!!.optString("recur")
-                    var until = json!!.optString("until")
+                    var recur = json.optString("recur")
+                    var until = json.optString("until")
                     if (!TextUtils.isEmpty(recur) && !TextUtils.isEmpty(until)) {
                         until = Helpers.asDate(until, sharedPref)
                         if (!TextUtils.isEmpty(until)) {

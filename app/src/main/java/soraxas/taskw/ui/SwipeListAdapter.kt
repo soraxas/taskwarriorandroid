@@ -46,7 +46,9 @@ import kotlin.math.roundToInt
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.Adapter<RecyclerView.ViewHolder>(), SwipeableItemAdapter<RecyclerView.ViewHolder> {
+class SwipeListAdapter(private val mProvider: TaskwDataProvider, private val
+mainList: MainList) : RecyclerView.Adapter<RecyclerView.ViewHolder>(),
+        SwipeableItemAdapter<RecyclerView.ViewHolder> {
     lateinit var info: ReportInfo
     private val job = Job()
     private val uiScope = CoroutineScope(Dispatchers.Main + job)
@@ -153,7 +155,7 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
                     holder.mCalLabelContainer.addView(v)
                 }
                 // add tags labels
-                val tags = item.json.optJSONArray("tags")
+                val tags = item.json!!.optJSONArray("tags")
                 tags?.let {
                     val v = Helpers.createLabel(viewContext, false,
                             R.drawable.ic_label_tags, Helpers.join("m", Helpers
@@ -178,12 +180,13 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
                 }
 
                 // set swiping properties
-                holder.swipeItemHorizontalSlideAmount = if (item.isPinned) SwipeableItemConstants
-                        .OUTSIDE_OF_THE_WINDOW_LEFT else 0f
+//                holder.swipeItemHorizontalSlideAmount = if (item.isPinned) SwipeableItemConstants
+//                        .OUTSIDE_OF_THE_WINDOW_LEFT else 0f
 
 
                 // set swiping properties
-                holder.maxLeftSwipeAmount = -0.5f
+//                holder.maxLeftSwipeAmount = -0.5f
+                holder.maxLeftSwipeAmount = -1f
                 holder.maxRightSwipeAmount = 0.5f
                 holder.swipeItemHorizontalSlideAmount = if (item.isPinned) -0.5f
                 else 0f
@@ -218,6 +221,12 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
 
     override fun onSwipeItem(holder: RecyclerView.ViewHolder, position: Int, result: Int): SwipeResultAction? {
         Log.d(TAG, "onSwipeItem(position = $position, result = $result)")
+        val onPinActions = { taskData: TaskwDataProvider.TaskwData ->
+            mainList.togglePinnedTask(taskData.uuidStr)
+            mainList.reload()
+            true
+        }
+
         return when (result) {
             SwipeableItemConstants.RESULT_SWIPED_RIGHT -> if (mProvider.getItem(position).isPinned) {
                 // pinned --- back to default position
@@ -226,7 +235,8 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
                 // not pinned --- remove
                 SwipeRightResultAction(this, position)
             }
-            SwipeableItemConstants.RESULT_SWIPED_LEFT -> SwipeLeftResultAction(this, position)
+            SwipeableItemConstants.RESULT_SWIPED_LEFT -> SwipeLeftResultAction(this,
+                    position, onPinActions)
             SwipeableItemConstants.RESULT_CANCELED -> if (position != RecyclerView.NO_POSITION) {
                 UnpinResultAction(this, position)
             } else {
@@ -431,17 +441,27 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
 
     }
 
-    private class SwipeLeftResultAction internal constructor(private val mAdapter:
-                                                             SwipeListAdapter, private val mPosition: Int) : SwipeResultActionMoveToSwipedDirection() {
+    private class SwipeLeftResultAction internal constructor(
+            private val mAdapter: SwipeListAdapter, private val mPosition: Int,
+            private val onPinAction: (TaskwDataProvider.TaskwData) -> Boolean
+    ) :
+            SwipeResultActionMoveToSwipedDirection() {
         private var mSetPinned = false
         override fun onPerformAction() {
             super.onPerformAction()
             val item = mAdapter.mProvider.getItem(mPosition)
-            if (!item.isPinned) {
-                item.isPinned = true
-                mAdapter.notifyItemChanged(mPosition)
-                mSetPinned = true
-            }
+
+            onPinAction(item)
+
+
+            mAdapter.mProvider.removeItem(mPosition)
+//            mAdapter.notifyDataSetChanged()
+
+//            if (!item.isPinned) {
+//                item.isPinned = true
+//                mAdapter.notifyItemChanged(mPosition)
+//                mSetPinned = true
+//            }
         }
 
         override fun onSlideAnimationEnd() {
@@ -449,6 +469,12 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
             if (mSetPinned && mAdapter.eventListener != null) {
 //                mAdapter.mEventListener.onItemPinned(mPosition);
             }
+        }
+
+        override fun onCleanUp() {
+            super.onCleanUp()
+            // clear the references
+//            mAdapter = null
         }
 
     }
@@ -472,6 +498,12 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
             }
         }
 
+        override fun onCleanUp() {
+            super.onCleanUp()
+            // clear the references
+//            mAdapter = null
+        }
+
     }
 
     private class UnpinResultAction internal constructor(private val mAdapter:
@@ -485,6 +517,11 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider) : RecyclerView.
             }
         }
 
+        override fun onCleanUp() {
+            super.onCleanUp()
+            // clear the references
+//            mAdapter = null
+        }
     }
 
     companion object {
