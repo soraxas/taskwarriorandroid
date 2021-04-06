@@ -28,6 +28,7 @@ import java.util.List;
 
 import soraxas.taskw.App;
 import soraxas.taskw.R;
+import soraxas.taskw.common.Helpers;
 
 /**
  * Created by kvorobyev on 11/21/15.
@@ -68,7 +69,7 @@ public class Editor extends Fragment {
             return null;
         }
         try {
-            return MainListAdapter.formattedFormat.parse(text);
+            return Helpers.formattedFormat.parse(text);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -80,7 +81,7 @@ public class Editor extends Fragment {
             return null;
         }
         try {
-            return MainListAdapter.formattedISO.parse(text); // With time
+            return Helpers.formattedISO.parse(text); // With time
         } catch (Exception e) {
         }
         return dateFromInput(text);
@@ -105,7 +106,7 @@ public class Editor extends Fragment {
                         c.set(Calendar.YEAR, year);
                         c.set(Calendar.MONTH, monthOfYear);
                         c.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-                        textInput.setText(MainListAdapter.formattedFormat.format(c.getTime()));
+                        textInput.setText(Helpers.formattedFormat.format(c.getTime()));
                     }
                 }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH));
                 dialog.show();
@@ -127,7 +128,7 @@ public class Editor extends Fragment {
                         c.set(Calendar.HOUR_OF_DAY, hourOfDay);
                         c.set(Calendar.MINUTE, minute);
                         c.set(Calendar.SECOND, 0);
-                        textInput.setText(MainListAdapter.formattedISO.format(c.getTime()));
+                        textInput.setText(Helpers.formattedISO.format(c.getTime()));
                     }
                 }, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), true);
                 dialog.show();

@@ -20,10 +20,13 @@ import java.util.List;
 import java.util.TimeZone;
 
 import soraxas.taskw.R;
-import soraxas.taskw.ui.MainListAdapter;
 import soraxas.taskw.utils.DateConverter;
 
 public class Helpers {
+    public static DateFormat formattedFormat = new SimpleDateFormat("yyyy-MM-dd");
+    public static DateFormat formattedISO = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
+    public static DateFormat formattedFormatDT = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+
     public static int status2icon(String status) {
         if ("deleted".equalsIgnoreCase(status)) return R.drawable.ic_status_deleted;
         if ("completed".equalsIgnoreCase(status)) return R.drawable.ic_status_completed;
@@ -116,7 +119,7 @@ public class Helpers {
             }
             return format.format(parsed);
         } catch (Exception e) {
-            Logger logger = Logger.forClass(MainListAdapter.class);
+            Logger logger = Logger.forClass(Helpers.class);
             logger.e(e, "Failed to parse Date:", due);
         }
         return null;

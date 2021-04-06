@@ -48,13 +48,11 @@ class TaskwDataProvider {
         // need to create a new item
         return TaskwData(item_type, uuid, json, swipeReaction)
     }
+//    var urgMin: Int = 0
+//    var urgMax: Int = 100
 
     fun update_report_info(list: List<JSONObject>, allPinnedTasks: Set<String>) {
-//
-//        int urgMin;
-//        int urgMax;
-//
-//    var jsonData: MutableList<JSONObject?> = ArrayList()
+//      var jsonData: MutableList<JSONObject?> = ArrayList()
 //    private val mData: MutableList<TaskwData> = ArrayList()
         val swipeReaction = RecyclerViewSwipeManager.REACTION_CAN_SWIPE_UP or RecyclerViewSwipeManager.REACTION_CAN_SWIPE_DOWN
 
