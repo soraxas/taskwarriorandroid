@@ -158,7 +158,7 @@ class MainList : Fragment() {
             val list = controller.accountController(account).taskList(mAdapter.info.query)
             mAdapter.info.sort(list) // Sorted
             // according to report spec.
-            mDataProvider.update_report_info(list, getPinnedTasks())
+            mDataProvider.updateReportInfo(list, getPinnedTasks())
             mAdapter.updateCurTaskDetailView?.run()
             notifyUiUpdate()
         }
