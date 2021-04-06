@@ -252,13 +252,13 @@ mainList: MainList) : RecyclerView.Adapter<RecyclerView.ViewHolder>(),
         }
     }
 
-    private fun populateTaskDetailView(json: JSONObject?, context: Context?, views: View): View {
-        if (json == null && context != null) return views
+    private fun populateTaskDetailView(json: JSONObject?, context: Context?, view: View): View {
+        if (json == null && context != null) return view
         val urgMin = 0
         val urgMax = 100
         // TODO fix me
 
-//        Snackbar.make(views, "Subscription Deleted", Snackbar.LENGTH_LONG)
+//        Snackbar.make(view, "Subscription Deleted", Snackbar.LENGTH_LONG)
 //                .setAction("Undo",  a -> {
 ////                            activeSubs.add(position-1, tmp)
 ////                            adapter!!.notifyDataSetChanged()
@@ -266,24 +266,24 @@ mainList: MainList) : RecyclerView.Adapter<RecyclerView.ViewHolder>(),
 
         ///////////////////////////
         val status = json!!.optString("status", "pending")
-        val task_status_btn = views.findViewById<ImageView>(R.id.task_status_btn)
-        task_status_btn.setImageResource(Helpers.status2icon(status))
-        task_status_btn.setOnClickListener {
-            listener?.onStatus(json)
+        val taskStatusBtn = view.findViewById<ImageView>(R.id.task_status_btn)
+        taskStatusBtn.setImageResource(Helpers.status2icon(status))
+        taskStatusBtn.setOnClickListener {
+            listener?.onStatus(json, view = view)
         }
 
         // clear previous contents
-        (views.findViewById<View>(R.id.task_annotations) as ViewGroup).removeAllViews()
-        (views.findViewById<View>(R.id.task_labels_left) as ViewGroup).removeAllViews()
-        (views.findViewById<View>(R.id.task_labels_right) as ViewGroup).removeAllViews()
+        (view.findViewById<View>(R.id.task_annotations) as ViewGroup).removeAllViews()
+        (view.findViewById<View>(R.id.task_labels_left) as ViewGroup).removeAllViews()
+        (view.findViewById<View>(R.id.task_labels_right) as ViewGroup).removeAllViews()
         val sharedPref = PreferenceManager.getDefaultSharedPreferences(context)
-        bindLongCopyText(json, views.findViewById(R.id.task_description),
+        bindLongCopyText(json, view.findViewById(R.id.task_description),
                 json.optString("description"))
         for ((key, value) in info.fields) {
             when (key.toLowerCase()) {
                 "description" -> {
                     // Set desc
-                    val desc = views.findViewById<TextView>(R.id.task_description)
+                    val desc = view.findViewById<TextView>(R.id.task_description)
                     desc.text = json.optString("description")
                     val annotations = json.optJSONArray("annotations")
                     if (null != annotations && annotations.length() > 0) {
@@ -307,21 +307,22 @@ mainList: MainList) : RecyclerView.Adapter<RecyclerView.ViewHolder>(),
                                             .setTitle("Remove annotation")
                                             .setMessage("Remove annotation '$ann'?") //                                                    .setIcon(android.R.drawable.ic_dialog_alert)
                                             .setPositiveButton(android.R.string.yes) { dialog: DialogInterface?, whichButton: Int ->
-                                                listener?.onDenotate(json, ann)
+                                                listener?.onDenotate(json, ann, view
+                                                = v)
                                             }
                                             .setNegativeButton(android.R.string.no, null).show()
                                 }
-                                val insertPoint = views.findViewById<ViewGroup>(R.id.task_annotations)
+                                val insertPoint = view.findViewById<ViewGroup>(R.id.task_annotations)
                                 insertPoint.addView(annView, 0, ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT))
                                 i++
                             }
                         }
                     }
                 }
-                "id" -> (views.findViewById<View>(R.id.task_id) as TextView).text = String.format("[%d]", json.optInt("id", -1))
+                "id" -> (view.findViewById<View>(R.id.task_id) as TextView).text = String.format("[%d]", json.optInt("id", -1))
                 "priority" -> {
                     val index = info.priorities.indexOf(json.optString("priority", ""))
-                    val pb_priority = views.findViewById<ProgressBar>(R.id.task_priority)
+                    val pb_priority = view.findViewById<ProgressBar>(R.id.task_priority)
                     if (index == -1) {
                         pb_priority.max = 0
                         pb_priority.progress = 0
@@ -331,15 +332,15 @@ mainList: MainList) : RecyclerView.Adapter<RecyclerView.ViewHolder>(),
                     }
                 }
                 "urgency" -> {
-                    val pb_urgency = views.findViewById<ProgressBar>(R.id.task_urgency)
+                    val pb_urgency = view.findViewById<ProgressBar>(R.id.task_urgency)
                     pb_urgency.max = urgMax - urgMin
                     pb_urgency.progress = json.optDouble("urgency").roundToInt() - urgMin
                 }
-                "due" -> Helpers.addLabelWithInsert(context, views, "due", true, R.drawable.ic_label_due,
+                "due" -> Helpers.addLabelWithInsert(context, view, "due", true, R.drawable.ic_label_due,
                         Helpers.asDate(json.optString("due"), sharedPref))
-                "wait" -> Helpers.addLabelWithInsert(context, views, "wait", true, R.drawable.ic_label_wait,
+                "wait" -> Helpers.addLabelWithInsert(context, view, "wait", true, R.drawable.ic_label_wait,
                         Helpers.asDate(json.optString("wait"), sharedPref))
-                "scheduled" -> Helpers.addLabelWithInsert(context, views, "scheduled", true, R.drawable.ic_label_scheduled,
+                "scheduled" -> Helpers.addLabelWithInsert(context, view, "scheduled", true, R.drawable.ic_label_scheduled,
                         Helpers.asDate(json.optString("scheduled"), sharedPref))
                 "recur" -> {
                     var recur = json.optString("recur")
@@ -349,44 +350,44 @@ mainList: MainList) : RecyclerView.Adapter<RecyclerView.ViewHolder>(),
                             recur += String.format(" ~ %s", until)
                         }
                     }
-                    Helpers.addLabelWithInsert(context, views, "recur", true, R.drawable.ic_label_recur, recur)
+                    Helpers.addLabelWithInsert(context, view, "recur", true, R.drawable.ic_label_recur, recur)
                 }
-                "project" -> Helpers.addLabelWithInsert(context, views, "project", false, R.drawable.ic_label_project,
+                "project" -> Helpers.addLabelWithInsert(context, view, "project", false, R.drawable.ic_label_project,
                         json.optString("project"))
-                "tags" -> Helpers.addLabelWithInsert(context, views, "tags", false, R.drawable.ic_label_tags, Helpers.join(", ", Helpers.array2List(
+                "tags" -> Helpers.addLabelWithInsert(context, view, "tags", false, R.drawable.ic_label_tags, Helpers.join(", ", Helpers.array2List(
                         json.optJSONArray("tags"))))
                 "start" -> {
                     val started = Helpers.asDate(json.optString("start"), sharedPref)
                     val isStarted = !TextUtils.isEmpty(started)
                     if ("pending".equals(status, ignoreCase = true)) { // Can be started/stopped
-                        val start_stop_btn = views.findViewById<View>(R.id.task_start_stop_btn)
+                        val start_stop_btn = view.findViewById<View>(R.id.task_start_stop_btn)
                         start_stop_btn.visibility = View.VISIBLE
                         start_stop_btn.setOnClickListener { v: View? ->
-                            listener?.onStartStop(json)
+                            listener?.onStartStop(json, view = v)
                         }
                         (start_stop_btn as ImageView).setImageResource(if (isStarted) R.drawable.ic_action_stop else R.drawable.ic_action_start)
                     }
                 }
             }
         }
-        views.findViewById<View>(R.id.task_edit_btn).setOnClickListener { v: View? ->
-            listener?.onEdit(json)
+        view.findViewById<View>(R.id.task_edit_btn).setOnClickListener { v: View? ->
+            listener?.onEdit(json, view = v)
         }
-        views.findViewById<View>(R.id.task_delete_btn).setOnClickListener { v: View? ->
+        view.findViewById<View>(R.id.task_delete_btn).setOnClickListener { v: View? ->
             AlertDialog.Builder(context)
                     .setTitle("Delete task")
                     .setMessage("Do you really want to delete this task?")
                     .setIcon(android.R.drawable.ic_dialog_alert)
                     .setPositiveButton(android.R.string.yes) { _, _ ->
-                        listener?.onDelete(json)
+                        listener?.onDelete(json, view = null)
                         curTaskDetailViewDialog?.dismiss()
                     }
                     .setNegativeButton(android.R.string.no, null).show()
         }
-        views.findViewById<View>(R.id.task_annotate_btn).setOnClickListener {
-            listener?.onAnnotate(json)
+        view.findViewById<View>(R.id.task_annotate_btn).setOnClickListener { v: View? ->
+            listener?.onAnnotate(json, view = v)
         }
-        return views
+        return view
     }
 
     private fun bindLongCopyText(json: JSONObject?, view: View?, text: String) {
@@ -396,7 +397,8 @@ mainList: MainList) : RecyclerView.Adapter<RecyclerView.ViewHolder>(),
         view.setOnLongClickListener(
                 View.OnLongClickListener {
                     logger.d("Long click on description", json)
-                    if (null != listener) listener!!.onCopyText(json, text)
+                    if (null != listener) listener!!.onCopyText(json, text, view =
+                    mainList.view)
                     true
                 })
     }
@@ -410,14 +412,15 @@ mainList: MainList) : RecyclerView.Adapter<RecyclerView.ViewHolder>(),
     }
 
     interface ItemListener {
-        fun onEdit(json: JSONObject)
-        fun onStatus(json: JSONObject)
-        fun onDelete(json: JSONObject)
-        fun onAnnotate(json: JSONObject)
-        fun onStartStop(json: JSONObject)
-        fun onDenotate(json: JSONObject, annJson: JSONObject)
-        fun onCopyText(json: JSONObject, text: String)
-        fun onLabelClick(json: JSONObject, type: String, longClick: Boolean)
+        fun onEdit(json: JSONObject, view: View?)
+        fun onStatus(json: JSONObject, view: View?)
+        fun onDelete(json: JSONObject, view: View?)
+        fun onAnnotate(json: JSONObject, view: View?)
+        fun onStartStop(json: JSONObject, view: View?)
+        fun onDenotate(json: JSONObject, annJson: JSONObject, view: View?)
+        fun onCopyText(json: JSONObject, text: String, view: View?)
+        fun onLabelClick(json: JSONObject, type: String, longClick: Boolean, view:
+        View?)
     }
 
 
@@ -487,7 +490,8 @@ mainList: MainList) : RecyclerView.Adapter<RecyclerView.ViewHolder>(),
         override fun onPerformAction() {
             super.onPerformAction()
             mAdapter.listener?.let {
-                it.onStatus(mAdapter.mProvider.getItem(mPosition).json)
+                it.onStatus(mAdapter.mProvider.getItem(mPosition).json, view = mAdapter
+                        .mainList.view)
                 // mark as done
                 mAdapter.mProvider.removeItem(mPosition)
                 mAdapter.notifyItemRemoved(mPosition)

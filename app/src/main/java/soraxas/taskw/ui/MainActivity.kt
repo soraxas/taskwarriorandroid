@@ -14,6 +14,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
+import android.os.StrictMode
 import android.text.TextUtils
 import android.view.*
 import android.widget.PopupMenu
@@ -73,7 +74,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
                 controller.setDefault(ac?.id())
             }
         }
-        navigationDrawer!!.closeDrawers()
+        navigationDrawer.closeDrawers()
         true
     }
     private lateinit var navigation: NavigationView
@@ -82,7 +83,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
     private lateinit var list: MainList
     private val updateTitleAction = Runnable {
         launch {
-            toolbar.subtitle = list.mAdapter.info!!.description
+            toolbar.subtitle = list.mAdapter.info.description
         }
     }
     private var addButton: FloatingActionButton? = null
@@ -92,14 +93,19 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
     private var accountNameID: TextView? = null
     private var header: ViewGroup? = null
 
-    private fun show_undo_msg(message: String?) {
-        if (message == null)
-            return;
-        val parentLayout = findViewById<View>(R.id.coordinator_layout)
-        Snackbar.make(parentLayout, message, Snackbar.LENGTH_INDEFINITE)
-                .setAction("UNDO") { undo() }
+    fun getSnackbar(message: String, length: Int = Snackbar.LENGTH_LONG,
+                    parentView: View? = null): Snackbar {
+        val parentLayout = parentView ?: findViewById<View>(R.id.coordinator_layout)
+        return Snackbar.make(parentLayout, message, length)
                 .setActionTextColor(resources.getColor(android.R.color.holo_red_light))
-                .show()
+//                .setAction("UNDO") { undo() }
+//                .show()
+    }
+
+    private fun showSnackbar(vararg objs: Any) {
+        val snackbar = StrictMode::class.java.getMethod("getSnackbar").invoke(objs)
+                as Snackbar
+        snackbar.show()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -147,99 +153,132 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
         accountNameID = header!!.findViewById<View>(R.id.list_nav_account_id) as TextView
         filterPanel = findViewById<View>(R.id.list_filter_block) as ViewGroup
         setSupportActionBar(toolbar)
-        toolbar!!.setNavigationOnClickListener {
-            if (navigationDrawer!!.isDrawerOpen(Gravity.LEFT)) {
-                navigationDrawer!!.closeDrawers()
+        toolbar.setNavigationOnClickListener {
+            if (navigationDrawer.isDrawerOpen(Gravity.LEFT)) {
+                navigationDrawer.closeDrawers()
             } else {
-                navigationDrawer!!.openDrawer(Gravity.LEFT)
+                navigationDrawer.openDrawer(Gravity.LEFT)
             }
         }
         header!!.findViewById<View>(R.id.list_nav_menu_btn).setOnClickListener { v: View -> showAccountMenu(v) }
         list.listener(object : SwipeListAdapter.ItemListener {
-            override fun onEdit(json: JSONObject) {
-                edit(json) // Start editor
+            override fun onEdit(json: JSONObject, view: View?) {
+                // Start editor
+                ac?.let {
+                    val intent = Intent(this@MainActivity, EditorActivity::class.java)
+                    if (it.intentForEditor(intent, json.optString("uuid"))) {
+                        // Valid task
+                        startActivityForResult(intent, App.EDIT_REQUEST)
+                    } else {
+                        controller.toastMessage("Invalid task", false)
+                    }
+                }
             }
 
-            override fun onStatus(json: JSONObject) {
-                changeStatus(json)
+            override fun onStatus(json: JSONObject, view: View?) {
+                if ("pending".equals(json.optString("status"), ignoreCase = true)) {
+                    val uuid = json.optString("uuid")
+                    val description = json.optString("description")
+                    // Mark as done
+                    doOp(String.format("Task '%s' marked done", description), uuid,
+                            "done", view = view)
+                }
             }
 
-            override fun onDelete(json: JSONObject) {
-                doOp(String.format("Task '%s' deleted", json!!.optString("description")),
-                        json.optString("uuid"), "delete")
+            override fun onDelete(json: JSONObject, view: View?) {
+                doOp(String.format("Task '%s' deleted", json.optString("description")),
+                        json.optString("uuid"), "delete", view = view)
             }
 
-            override fun onAnnotate(json: JSONObject) {
-                annotate(json)
+            override fun onAnnotate(json: JSONObject, view: View?) {
+                MaterialDialog(this@MainActivity).show {
+                    input(hint = "Annotation") { _, text ->
+                        // Text submitted with the action button
+                        val uuid = json.optString("uuid")!!
+                        doOp("Added new annotation", uuid, "annotate", text.toString(),
+                                view =
+                        view)
+                        list.reload()
+                    }
+                    title(text = "Add new annotation")
+                    negativeButton(text = "Cancel")
+                    positiveButton(text = "OK")
+                }
             }
 
-            override fun onDenotate(json: JSONObject, annJson: JSONObject) {
-                val text = annJson!!.optString("description")
-                doOp(String.format("Annotation '%s' deleted", text), json!!.optString("uuid"),
-                        "denotate", text)
+            override fun onDenotate(json: JSONObject, annJson: JSONObject, view:
+            View?) {
+                val text = annJson.optString("description")
+                doOp(String.format("Annotation '%s' deleted", text), json.optString("uuid"),
+                        "denotate", text, view = view)
             }
 
-            override fun onCopyText(json: JSONObject, text: String) {
+            override fun onCopyText(json: JSONObject, text: String, view: View?) {
                 controller.copyToClipboard(text)
             }
 
-            override fun onLabelClick(json: JSONObject, type: String, longClick: Boolean) {
+            override fun onLabelClick(json: JSONObject, type: String, longClick:
+            Boolean, view: View?) {
                 if (longClick) { // Special case - start search
                     val intent = Intent(this@MainActivity, MainActivity::class.java)
                     intent.putExtra(App.KEY_ACCOUNT, form.getValue(App.KEY_ACCOUNT, String::class.java))
                     intent.putExtra(App.KEY_REPORT, form.getValue(App.KEY_REPORT, String::class.java))
                     var query = form.getValue<String>(App.KEY_QUERY)!!
-                    if (("project" == type)) {
-                        query += " pro:" + json!!.optString("project")
-                        intent.putExtra(App.KEY_QUERY, query.trim { it <= ' ' })
-                        startActivity(intent)
-                        return
-                    }
-                    if (("tags" == type)) {
-                        val tags = Helpers.join(" +",
-                                Helpers.array2List(json!!.optJSONArray("tags")))
-                        query += " +$tags"
-                        intent.putExtra(App.KEY_QUERY, query.trim { it <= ' ' })
-                        startActivity(intent)
-                        return
+                    when (type) {
+                        "project" -> {
+                            query += " pro:" + json.optString("project")
+                            intent.putExtra(App.KEY_QUERY, query.trim { it <= ' ' })
+                            startActivity(intent)
+                        }
+                        "tags" -> {
+                            val tags = Helpers.join(" +",
+                                    Helpers.array2List(json.optJSONArray("tags")))
+                            query += " +$tags"
+                            intent.putExtra(App.KEY_QUERY, query.trim { it <= ' ' })
+                            startActivity(intent)
+                        }
                     }
                     return
                 }
-                if (("project" == type)) {
-                    add(Pair.create(App.KEY_EDIT_PROJECT, json!!.optString("project")))
-                }
-                if (("tags" == type)) {
-                    val tags = Helpers.join(" ",
-                            Helpers.array2List(json!!.optJSONArray("tags")))
-                    add(Pair.create(App.KEY_EDIT_TAGS, tags))
-                }
-                if (("due" == type)) {
-                    add(Pair.create(App.KEY_EDIT_DUE,
-                            Helpers.asDate(json!!.optString("due"), null)))
-                }
-                if (("wait" == type)) {
-                    add(Pair.create(App.KEY_EDIT_WAIT,
-                            Helpers.asDate(json!!.optString("wait"), null)))
-                }
-                if (("scheduled" == type)) {
-                    add(Pair.create(App.KEY_EDIT_SCHEDULED,
-                            Helpers.asDate(json!!.optString("scheduled"), null)))
-                }
-                if (("recur" == type)) {
-                    add(Pair.create(App.KEY_EDIT_UNTIL,
-                            Helpers.asDate(json!!.optString("until"), null)),
-                            Pair.create(App.KEY_EDIT_RECUR, json.optString("recur")))
+                when (type) {
+                    "project" -> {
+                        add(Pair.create(App.KEY_EDIT_PROJECT, json.optString("project")))
+                    }
+                    "tags" -> {
+                        val tags = Helpers.join(" ",
+                                Helpers.array2List(json.optJSONArray("tags")))
+                        add(Pair.create(App.KEY_EDIT_TAGS, tags))
+                    }
+                    "due" -> {
+                        add(Pair.create(App.KEY_EDIT_DUE,
+                                Helpers.asDate(json.optString("due"), null)))
+                    }
+                    "wait" -> {
+                        add(Pair.create(App.KEY_EDIT_WAIT,
+                                Helpers.asDate(json.optString("wait"), null)))
+                    }
+                    "scheduled" -> {
+                        add(Pair.create(App.KEY_EDIT_SCHEDULED,
+                                Helpers.asDate(json.optString("scheduled"), null)))
+                    }
+                    "recur" -> {
+                        add(Pair.create(App.KEY_EDIT_UNTIL,
+                                Helpers.asDate(json.optString("until"), null)),
+                                Pair.create(App.KEY_EDIT_RECUR, json.optString("recur")))
+                    }
                 }
             }
 
-            override fun onStartStop(json: JSONObject) {
-                val text = json!!.optString("description")
+            override fun onStartStop(json: JSONObject, view: View?) {
+                val text = json.optString("description")
                 val uuid = json.optString("uuid")
                 val started = json.has("start")
                 if (started) { // Stop
-                    doOp(String.format("Task'%s' stopped", text), uuid, "stop")
+                    doOp(String.format("Task'%s' stopped", text), uuid, "stop", view
+                    = view)
                 } else { // Start
-                    doOp(String.format("Task '%s' started", text), uuid, "start")
+                    doOp(String.format("Task '%s' started", text), uuid, "start",
+                            view = view)
                 }
             }
         })
@@ -311,21 +350,19 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
 //                }
 //            }
 //        });
-        addButton!!.setOnClickListener(View.OnClickListener { add() })
+        addButton!!.setOnClickListener { add() }
         progressListener = setupProgressListener(this, progressBar)
         form.add<Any, String?>(TransientAdapter(StringBundleAdapter(), null), App.KEY_ACCOUNT)
         form.add<Any, String?>(TransientAdapter(StringBundleAdapter(), null), App.KEY_REPORT)
         //        form.add(new TransientAdapter<>(new StringBundleAdapter(), null), App.KEY_QUERY);
         form.add<Any, CharSequence>(TextViewCharSequenceAdapter(R.id.list_filter, null), App.KEY_QUERY)
         form.load(this, savedInstanceState)
-        findViewById<View>(R.id.list_filter_btn).setOnClickListener(object : View.OnClickListener {
-            override fun onClick(v: View) {
-                val input = form.getValue<String>(App.KEY_QUERY)
-                //                form.setValue(App.KEY_QUERY, input);
-                logger.d("Changed filter:", form.getValue(App.KEY_QUERY), input)
-                reload()
-            }
-        })
+        findViewById<View>(R.id.list_filter_btn).setOnClickListener {
+            val input = form.getValue<String>(App.KEY_QUERY)
+            //                form.setValue(App.KEY_QUERY, input);
+            logger.d("Changed filter:", form.getValue(App.KEY_QUERY), input)
+            reload()
+        }
         if (!TextUtils.isEmpty(form.getValue(App.KEY_QUERY, String::class.java))) {
             // Have something in query
             filterPanel.visibility = View.VISIBLE
@@ -364,23 +401,6 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
         val query = form.getValue<String>(App.KEY_QUERY)
         filterPanel.visibility = if (TextUtils.isEmpty(query)) View.GONE else View.VISIBLE
         list.load(form, updateTitleAction)
-    }
-
-    private fun annotate(json: JSONObject) {
-        MaterialDialog(this).show {
-            input(hint = "Annotation") { dialog, text ->
-                // Text submitted with the action button
-                val uuid = json.optString("uuid")
-                val result: String? = ac?.taskAnnotate(uuid, text.toString())
-                if (null != result) { // Error
-                    controller.toastMessage(result, false)
-                }
-                list.reload()
-            }
-            title(text = "Add new annotation")
-            negativeButton(text = "Cancel")
-            positiveButton(text = "OK")
-        }
     }
 
     private fun showAccountMenu(btn: View) {
@@ -442,34 +462,29 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
         }
     }
 
-    private fun changeStatus(json: JSONObject?) {
-        val status = json!!.optString("status")
-        val uuid = json.optString("uuid")
-        val description = json.optString("description")
-        if ("pending".equals(status, ignoreCase = true)) {
-            // Mark as done
-            doOp(String.format("Task '%s' marked done", description), uuid, "done")
-        }
-    }
-
-    private fun doOp(message: String?, uuid: String, op: String, vararg ops: String) {
+    public fun doOp(message: String, uuid: String, op: String, vararg ops: String,
+                     view: View?) {
         ac?.let {
             launch(Dispatchers.Default) {
+                val operation = op.toLowerCase(Locale.ROOT)
                 val result: String? =
-                        when {
-                            "done".equals(op, ignoreCase = true) -> {
+                        when (operation) {
+                            "done" -> {
                                 it.taskDone(uuid)
                             }
-                            "delete".equals(op, ignoreCase = true) -> {
+                            "delete" -> {
                                 it.taskDelete(uuid)
                             }
-                            "start".equals(op, ignoreCase = true) -> {
+                            "start" -> {
                                 it.taskStart(uuid)
                             }
-                            "stop".equals(op, ignoreCase = true) -> {
+                            "stop" -> {
                                 it.taskStop(uuid)
                             }
-                            "denotate".equals(op, ignoreCase = true) -> {
+                            "annotate" -> {
+                                it.taskAnnotate(uuid, ops[0])
+                            }
+                            "denotate" -> {
                                 it.taskDenotate(uuid, ops[0])
                             }
                             else -> {
@@ -479,18 +494,16 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
                 if (null != result) {
                     controller.toastMessage(result, true)
                 } else {
-                    show_undo_msg(message)
+                    getSnackbar(message = message, length = Snackbar.LENGTH_INDEFINITE,
+                            parentView = view)
+                            .setAction("UNDO") {
+                                undo()
+                            }
+                            .show()
                     list.reload()
                 }
             }
         }
-//        Snackbar.SnackbarLayout layout = (Snackbar.SnackbarLayout) snackbar.getView();
-//
-//        Snackbar.make(layout, "Subscription Deleted", Snackbar.LENGTH_LONG)
-//                .setAction("Undo",  a -> {
-////                            activeSubs.add(position-1, tmp)
-////                            adapter!!.notifyDataSetChanged()
-//                });
     }
 
     private fun add(vararg pairs: Pair<String, String>) {
@@ -498,29 +511,17 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
         val intent = Intent(this, EditorActivity::class.java)
 //        showD(this, View.inflate(this, R.layout.activity_editor, null))
         ac!!.intentForEditor(intent, null)
-        if (null != pairs) {
-            val data = Bundle()
-            val names = ArrayList<String>()
-            for (pair in pairs) { // $COMMENT
-                if (!TextUtils.isEmpty(pair.second)) { // Has data
-                    data.putString(pair.first, pair.second)
-                    names.add(pair.first)
-                }
+        val data = Bundle()
+        val names = ArrayList<String>()
+        for (pair in pairs) { // $COMMENT
+            if (!TextUtils.isEmpty(pair.second)) { // Has data
+                data.putString(pair.first, pair.second)
+                names.add(pair.first)
             }
-            intent.putExtra(App.KEY_EDIT_DATA, data)
-            intent.putStringArrayListExtra(App.KEY_EDIT_DATA_FIELDS, names)
         }
+        intent.putExtra(App.KEY_EDIT_DATA, data)
+        intent.putStringArrayListExtra(App.KEY_EDIT_DATA_FIELDS, names)
         startActivityForResult(intent, App.EDIT_REQUEST)
-    }
-
-    private fun edit(json: JSONObject?) {
-        if (null == ac) return
-        val intent = Intent(this, EditorActivity::class.java)
-        if (ac!!.intentForEditor(intent, json!!.optString("uuid"))) { // Valid task
-            startActivityForResult(intent, App.EDIT_REQUEST)
-        } else {
-            controller.toastMessage("Invalid task", false)
-        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -580,7 +581,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
     }
 
     private fun refreshReports() {
-        launch() {
+        launch {
             var result: Map<String, String?> = ac!!.taskReports()
             // We're in UI thread
             navigation.menu.findItem(R.id.menu_nav_debug).isVisible = ac!!
@@ -658,7 +659,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
             return
         }
         launch(Dispatchers.Default) {
-            var result: String? = ac!!.taskSync()
+            val result: String? = ac!!.taskSync()
             if (null != result) { // Error
                 controller.toastMessage(result, false)
             } else {
