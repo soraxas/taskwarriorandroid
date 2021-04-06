@@ -136,8 +136,7 @@ mainList: MainList) : RecyclerView.Adapter<RecyclerView.ViewHolder>(),
                 holder.itemView.setOnClickListener { v: View -> onItemViewClick(v, position, true) }
                 // (if the item is *not pinned*, click event comes to the mContainer)
                 holder.mContainer.setOnClickListener { v: View ->
-                    onItemViewClick(v,
-                            position, false)
+                    onItemViewClick(v, position, false)
                 }
                 //                holder.mContainer.setOnClickListener(mSwipeableViewContainerOnClickListener);
 
