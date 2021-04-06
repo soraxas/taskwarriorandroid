@@ -8,7 +8,10 @@ import android.net.Uri
 import android.text.TextUtils
 import androidx.core.app.NotificationCompat
 import androidx.preference.PreferenceManager
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.kvj.bravo7.log.Logger
 import org.kvj.bravo7.log.Logger.LoggerLevel
@@ -814,29 +817,25 @@ class AccountController(private val controller: Controller, private val id: Stri
             return result
         }
 
-    val tags: List<String?>
+    val tags: List<String>
         get() = getTags(false)
 
-    fun getTags(include_buildin_tags: Boolean): List<String?> {
-        val virtualTags = Arrays.asList("ACTIVE", "ANNOTATED", "BLOCKED", "BLOCKING",
+    fun getTags(include_buildin_tags: Boolean): List<String> {
+        val virtualTags = setOf("ACTIVE", "ANNOTATED", "BLOCKED", "BLOCKING",
                 "CHILD", "COMPLETED", "DELETED", "DUE", "DUETODAY", "MONTH", "ORPHAN", "OVERDUE",
                 "PARENT", "PENDING", "READY", "SCHEDULED", "TAGGED", "TODAY", "TOMORROW", "UDA",
                 "UNBLOCKED", "UNTIL", "WAITING", "WEEK", "YEAR", "YESTERDAY"
         )
-        val specialTags = Arrays.asList("next", "nocal", "nocolor", "nonag")
-        val result: MutableList<String?> = ArrayList()
+        val specialTags = setOf("next", "nocal", "nocolor", "nonag")
+        val result: MutableList<String> = ArrayList()
         val params: MutableList<String> = ArrayList()
         params.add("_tags")
         callTask(object : StreamConsumer {
             override fun eat(line: String?) {
-                if (!TextUtils.isEmpty(line)) {
-                    try {
-                        if (include_buildin_tags || !virtualTags.contains(line!!.toUpperCase()) &&
-                                !specialTags.contains(line.toLowerCase())) {
-                            result.add(line)
-                        }
-                    } catch (e: Exception) {
-                        logger.e(e, "Not String object:", line)
+                line?.let {
+                    if (include_buildin_tags || it.toUpperCase(Locale.ROOT) !in virtualTags &&
+                            it.toLowerCase(Locale.ROOT) !in specialTags) {
+                        result.add(it)
                     }
                 }
             }
