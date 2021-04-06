@@ -410,14 +410,14 @@ mainList: MainList) : RecyclerView.Adapter<RecyclerView.ViewHolder>(),
     }
 
     interface ItemListener {
-        fun onEdit(json: JSONObject?)
-        fun onStatus(json: JSONObject?)
-        fun onDelete(json: JSONObject?)
-        fun onAnnotate(json: JSONObject?)
-        fun onStartStop(json: JSONObject?)
-        fun onDenotate(json: JSONObject?, annJson: JSONObject?)
-        fun onCopyText(json: JSONObject?, text: String?)
-        fun onLabelClick(json: JSONObject?, type: String?, longClick: Boolean)
+        fun onEdit(json: JSONObject)
+        fun onStatus(json: JSONObject)
+        fun onDelete(json: JSONObject)
+        fun onAnnotate(json: JSONObject)
+        fun onStartStop(json: JSONObject)
+        fun onDenotate(json: JSONObject, annJson: JSONObject)
+        fun onCopyText(json: JSONObject, text: String)
+        fun onLabelClick(json: JSONObject, type: String, longClick: Boolean)
     }
 
 

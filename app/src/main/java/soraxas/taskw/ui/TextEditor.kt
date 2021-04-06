@@ -117,7 +117,7 @@ class TextEditor : AppCompatActivity() {
         val text = form.getValue<String>(App.KEY_TEXT_INPUT)
 
         GlobalScope.launch {
-            var saveMe = text
+            var saveMe = text!!
             if (!saveMe.isEmpty() && !saveMe.endsWith("\n")) { // Auto-add new line
                 saveMe += "\n"
             }

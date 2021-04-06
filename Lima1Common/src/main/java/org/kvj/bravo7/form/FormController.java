@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
 
+import androidx.annotation.Nullable;
+
 import org.kvj.bravo7.form.impl.ViewFinder;
 import org.kvj.bravo7.log.Logger;
 
@@ -142,6 +144,7 @@ public class FormController {
         }
     }
 
+    @Nullable
     public <T> T getValue(String name, Class<T> cl) {
         Pair p = pairs.get(name);
         if (null == p) {
@@ -150,6 +153,7 @@ public class FormController {
         return (T) p.viewAdapter.getWidgetValue();
     }
 
+    @Nullable
     public <T> T getValue(String name) {
         Pair p = pairs.get(name);
         if (null == p) {

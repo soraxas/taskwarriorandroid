@@ -47,9 +47,9 @@ class AccountController(private val controller: Controller, private val id: Stri
         return File(tasksFolder, TASKRC)
     }
 
-    fun taskAnnotate(uuid: String?, text: String): String? {
+    fun taskAnnotate(uuid: String, text: String): String? {
         val err = StringAggregator()
-        if (!callTask(outConsumer, err, uuid!!, "annotate", escape(text))) { // Failure
+        if (!callTask(outConsumer, err, uuid, "annotate", escape(text))) { // Failure
             return err.text()
         }
         scheduleSync(TimerType.AfterChange)
@@ -750,7 +750,7 @@ class AccountController(private val controller: Controller, private val id: Stri
                 }
             }
             acceptThread!!.start()
-            controller.toastMessage("Sync configured", false)
+//            controller.toastMessage("Sync configured", false)
             return runner.socket // Close me later on stop
         } catch (e: Exception) {
             logger.e(e, "Failed to open local socket")

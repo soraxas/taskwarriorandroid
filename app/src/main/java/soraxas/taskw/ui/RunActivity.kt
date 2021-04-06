@@ -143,7 +143,7 @@ class RunActivity : AppCompatActivity() {
     }
 
     private fun run() {
-        val input = form.getValue<String>(App.KEY_RUN_COMMAND)
+        val input = form.getValue<String>(App.KEY_RUN_COMMAND)!!
         if (TextUtils.isEmpty(input)) {
             controller.toastMessage("Input is empty", false)
             return

@@ -12,7 +12,10 @@ import android.widget.AutoCompleteTextView
 import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import org.kvj.bravo7.form.BundleAdapter
 import org.kvj.bravo7.form.FormController
 import org.kvj.bravo7.form.impl.ViewFinder.ActivityViewFinder
@@ -30,7 +33,6 @@ import soraxas.taskw.data.AccountController.TaskListener
 import soraxas.taskw.ui.EditorActivity
 import soraxas.taskw.ui.MainActivity.Companion.setupProgressListener
 import soraxas.taskw.utils.AutoTagsSuggestAdapter
-import java.lang.Runnable
 import java.util.*
 
 /**
@@ -190,7 +192,7 @@ class EditorActivity : AppCompatActivity() {
         if (!form.changed()) { // No change - no save
             return "Nothing has been changed"
         }
-        val description = form.getValue<String>(App.KEY_EDIT_DESCRIPTION)
+        val description = form.getValue<String>(App.KEY_EDIT_DESCRIPTION)!!
         if (TextUtils.isEmpty(description)) { // Empty desc
             return "Description is mandatory"
         }
@@ -219,17 +221,17 @@ class EditorActivity : AppCompatActivity() {
             }
             if (App.KEY_EDIT_PRIORITY == key) { // Direct
                 changes.add(String.format("priority:%s", priorities
-                        ?.get(form.getValue(App.KEY_EDIT_PRIORITY, Int::class.java))))
+                        ?.get(form.getValue(App.KEY_EDIT_PRIORITY, Int::class.java)!!)))
             }
             if (App.KEY_EDIT_TAGS == key) { // Direct
                 val tags: List<String> = ArrayList()
-                val tagsStr = form.getValue<String>(App.KEY_EDIT_TAGS)
+                val tagsStr = form.getValue<String>(App.KEY_EDIT_TAGS)!!
                 Collections.addAll(tags.toMutableList(), *tagsStr.split(" ").toTypedArray())
                 changes.add(String.format("tags:%s", Helpers.join(",", tags)))
             }
         }
-        val uuid = form.getValue<String>(App.KEY_EDIT_UUID)
-        val completed = form.getValue(App.KEY_EDIT_STATUS, Int::class.java) > 0
+        val uuid = form.getValue<String>(App.KEY_EDIT_UUID)!!
+        val completed = form.getValue(App.KEY_EDIT_STATUS, Int::class.java)!! > 0
         logger.d("Saving change:", uuid, changes, completed)
         return if (TextUtils.isEmpty(uuid)) { // Add new
             if (completed) ac!!.taskLog(changes) else ac!!.taskAdd(changes)

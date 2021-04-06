@@ -40,16 +40,16 @@ class AnnotationDialog : AppCompatActivity() {
             return
         }
         val ac = controller.accountController(form.getValue(App.KEY_ACCOUNT, String::class.java))
-        GlobalScope.launch {
-            val uuid = form.getValue<String>(App.KEY_EDIT_UUID)
-            val result: String? = ac.taskAnnotate(uuid, text)
-            if (null != result) { // Error
-                controller.toastMessage(result, false)
-            } else {
-                setResult(Activity.RESULT_OK)
-                this@AnnotationDialog.finish()
-            }
-        }
+//        GlobalScope.launch {
+//            val uuid = form.getValue<String>(App.KEY_EDIT_UUID)
+//            val result: String? = ac.taskAnnotate(uuid, text)
+//            if (null != result) { // Error
+//                controller.toastMessage(result, false)
+//            } else {
+//                setResult(Activity.RESULT_OK)
+//                this@AnnotationDialog.finish()
+//            }
+//        }
     }
 
     private fun doFinish() {

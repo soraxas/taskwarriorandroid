@@ -26,7 +26,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.util.Pair
 import androidx.drawerlayout.widget.DrawerLayout
-import androidx.fragment.app.FragmentActivity
+import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.input.input
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
@@ -155,39 +156,39 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
         }
         header!!.findViewById<View>(R.id.list_nav_menu_btn).setOnClickListener { v: View -> showAccountMenu(v) }
         list.listener(object : SwipeListAdapter.ItemListener {
-            override fun onEdit(json: JSONObject?) {
+            override fun onEdit(json: JSONObject) {
                 edit(json) // Start editor
             }
 
-            override fun onStatus(json: JSONObject?) {
+            override fun onStatus(json: JSONObject) {
                 changeStatus(json)
             }
 
-            override fun onDelete(json: JSONObject?) {
+            override fun onDelete(json: JSONObject) {
                 doOp(String.format("Task '%s' deleted", json!!.optString("description")),
                         json.optString("uuid"), "delete")
             }
 
-            override fun onAnnotate(json: JSONObject?) {
+            override fun onAnnotate(json: JSONObject) {
                 annotate(json)
             }
 
-            override fun onDenotate(json: JSONObject?, annJson: JSONObject?) {
+            override fun onDenotate(json: JSONObject, annJson: JSONObject) {
                 val text = annJson!!.optString("description")
                 doOp(String.format("Annotation '%s' deleted", text), json!!.optString("uuid"),
                         "denotate", text)
             }
 
-            override fun onCopyText(json: JSONObject?, text: String?) {
+            override fun onCopyText(json: JSONObject, text: String) {
                 controller.copyToClipboard(text)
             }
 
-            override fun onLabelClick(json: JSONObject?, type: String?, longClick: Boolean) {
+            override fun onLabelClick(json: JSONObject, type: String, longClick: Boolean) {
                 if (longClick) { // Special case - start search
                     val intent = Intent(this@MainActivity, MainActivity::class.java)
                     intent.putExtra(App.KEY_ACCOUNT, form.getValue(App.KEY_ACCOUNT, String::class.java))
                     intent.putExtra(App.KEY_REPORT, form.getValue(App.KEY_REPORT, String::class.java))
-                    var query = form.getValue<String>(App.KEY_QUERY)
+                    var query = form.getValue<String>(App.KEY_QUERY)!!
                     if (("project" == type)) {
                         query += " pro:" + json!!.optString("project")
                         intent.putExtra(App.KEY_QUERY, query.trim { it <= ' ' })
@@ -231,7 +232,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
                 }
             }
 
-            override fun onStartStop(json: JSONObject?) {
+            override fun onStartStop(json: JSONObject) {
                 val text = json!!.optString("description")
                 val uuid = json.optString("uuid")
                 val started = json.has("start")
@@ -365,11 +366,21 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
         list.load(form, updateTitleAction)
     }
 
-    private fun annotate(json: JSONObject?) {
-        val dialog = Intent(this, AnnotationDialog::class.java)
-        dialog.putExtra(App.KEY_ACCOUNT, form.getValue(App.KEY_ACCOUNT, String::class.java))
-        dialog.putExtra(App.KEY_EDIT_UUID, json!!.optString("uuid"))
-        startActivityForResult(dialog, App.ANNOTATE_REQUEST)
+    private fun annotate(json: JSONObject) {
+        MaterialDialog(this).show {
+            input(hint = "Annotation") { dialog, text ->
+                // Text submitted with the action button
+                val uuid = json.optString("uuid")
+                val result: String? = ac?.taskAnnotate(uuid, text.toString())
+                if (null != result) { // Error
+                    controller.toastMessage(result, false)
+                }
+                list.reload()
+            }
+            title(text = "Add new annotation")
+            negativeButton(text = "Cancel")
+            positiveButton(text = "OK")
+        }
     }
 
     private fun showAccountMenu(btn: View) {
@@ -394,9 +405,9 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
     }
 
     private fun onNavigationMenu(item: MenuItem) {
-        val account = form.getValue<String>(App.KEY_ACCOUNT)
+        val account = form.getValue<String>(App.KEY_ACCOUNT)!!
         if (null == ac) return
-        navigationDrawer!!.closeDrawers()
+        navigationDrawer.closeDrawers()
         when (item.itemId) {
             R.id.menu_nav_reload -> refreshAccount(account)
             R.id.menu_nav_run -> startActivity(ac!!.intentForRunTask())
@@ -663,7 +674,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
         if (null == ac) return
         if (Activity.RESULT_OK == resultCode && App.SETTINGS_REQUEST == requestCode) { // Settings were modified
             logger.d("Reload after finish:", requestCode, resultCode)
-            refreshAccount(form.getValue(App.KEY_ACCOUNT, String::class.java))
+            refreshAccount(form.getValue(App.KEY_ACCOUNT, String::class.java)!!)
         }
     }
 

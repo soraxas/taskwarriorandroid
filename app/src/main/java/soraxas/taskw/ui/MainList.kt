@@ -140,7 +140,7 @@ class MainList : Fragment() {
             // load the chosen report
             account = form.getValue<String>(App.KEY_ACCOUNT)
             val report = form.getValue<String>(App.KEY_REPORT)
-            val query = form.getValue<String>(App.KEY_QUERY)
+            val query = form.getValue<String>(App.KEY_QUERY)!!
 
             logger.d("Load:", query, report)
             val result: ReportInfo = controller.accountController(account).taskReportInfo(report, query)
