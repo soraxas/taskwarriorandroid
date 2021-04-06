@@ -3,7 +3,6 @@ package soraxas.taskw.common.data
 import android.content.Context
 import android.content.SharedPreferences
 import android.text.TextUtils
-import android.util.Pair
 import android.view.View
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.RecyclerViewSwipeManager
 import org.json.JSONObject
@@ -59,7 +58,7 @@ class TaskwDataProvider {
         val newDataContainer: MutableList<TaskwData> = ArrayList()
         val newUUIDtoData = LinkedHashMap<String, TaskwData>()
 
-        val pinnedTasks: MutableList<JSONObject> = ArrayList()
+        val pinnedTasks: MutableList<TaskwData> = ArrayList()
 
         if (!useProjectAsDivider) {
             for (json in list) {
@@ -69,39 +68,48 @@ class TaskwDataProvider {
             }
         } else {
             // a map of list of tasks (where each list of task is a project)
-            val project: MutableMap<String, Pair<MutableList<JSONObject>, Double>?> = HashMap()
+            var project: MutableMap<String, MutableList<TaskwData>> =
+                    HashMap()
+            var projectUrgency: MutableMap<String, Double> =
+                    HashMap()
             for (json in list) {
                 val uuid = json.optString("uuid")
+                val task = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_ITEM, uuid, json,
+                        swipeReaction)
                 if (uuid in allPinnedTasks) {
                     // retrieve the pinned tasks and display them at the front
-                    pinnedTasks.add(json)
+                    pinnedTasks.add(task)
                     continue
                 }
                 //
-                val proj = json.optString("project", "")
-                var urgency = json.optDouble("urgency")
-                var proj_container: MutableList<JSONObject>
-                if (project.containsKey(proj)) {
-                    val old_pair = project[proj]
-                    proj_container = old_pair!!.first
-                    if (urgency < old_pair.second) urgency = old_pair.second
-                } else {
+                lateinit var proj_container: MutableList<TaskwData>
+                project[task.project]?.let {
+                    // contain existing project container
+                    proj_container = it
+                    if (task.urgency > projectUrgency[task.project]!!) {
+                        projectUrgency[task.project] = task.urgency
+                    }
+                } ?: run {
+                    // does not contain existing project container
                     proj_container = ArrayList()
+                    project[task.project] = proj_container
+                    projectUrgency[task.project] = task.urgency
                 }
-                proj_container.add(json)
-                project[proj] = Pair(proj_container, urgency)
+                proj_container.add(task)  // append task to project container
             }
             // sort by urgency
             val sorted_proj: MutableList<String> = ArrayList(project.keys)
             // we sort in reverse (larger number first)
             sorted_proj.sortWith(
-                    Comparator { a: String?, b: String? -> project[b]!!.second
-                            .compareTo(project[a]!!.second) })
+                    Comparator { a: String?, b: String? ->
+                        projectUrgency[b]!!
+                                .compareTo(projectUrgency[a]!!)
+                    })
 
             // inject the pinned task at the very front
             if (pinnedTasks.isNotEmpty()) {
                 sorted_proj.add(0, "[pinned]")
-                project["[pinned]"] = Pair(pinnedTasks, 0.0)
+                project["[pinned]"] = pinnedTasks
             }
             // put back into result
             for (projKey in sorted_proj) {
@@ -112,15 +120,13 @@ class TaskwDataProvider {
                         else -> projKey
                     }
                     // add project count to the end of the key
-                    projKeyAsUuid += " (" + project[projKey]!!.first.size + ")"
+//                    projKeyAsUuid += " (" + project[projKey]!!.size + ")"
                     newUUIDtoData[projKeyAsUuid] = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_HEADER,
-                            projKeyAsUuid,
-                            JSONObject(), swipeReaction)
+                            projKeyAsUuid + " (" + project[projKey]!!.size + ")",
+                            JSONObject().put("uuid", projKeyAsUuid), swipeReaction)
                 }
-                for (json in project[projKey]!!.first) {
-                    val uuid: String = json.optString("uuid")
-                    newUUIDtoData[uuid] = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_ITEM, uuid, json,
-                            swipeReaction)
+                for (task in project[projKey]!!) {
+                    newUUIDtoData[task.uuid] = task
                 }
             }
         }
@@ -193,15 +199,18 @@ class TaskwDataProvider {
         var viewType = 0
             private set
         var isPinned = false
-        lateinit var uuidStr: String
-        lateinit var uuid: UUID
+        lateinit var uuid: String
+        lateinit var uuid_: UUID
         var id: Long = -1
 
         val urgency: Double
             get() = json.optDouble("urgency", 0.0)
 
+        val project: String
+            get() = json.optString("project", "")
+
         private fun _uuid_to_long(): Long {
-            return uuid.mostSignificantBits and kotlin.Long.MAX_VALUE
+            return uuid_.mostSignificantBits and kotlin.Long.MAX_VALUE
         }
 
         internal constructor(viewType: Int, uuid: String, json: JSONObject,
@@ -216,10 +225,10 @@ class TaskwDataProvider {
                 ITEM_VIEW_TYPE_SECTION_HEADER -> {
                     this.json = json
                     this.text = uuidStr
-                    this.uuidStr = uuidStr
+                    this.uuid = json.optString("uuid")
                     // header's uuid is not a valid uuid format. We will construct a
                     // uuid with its byte-array instead.
-                    this.uuid = UUID.nameUUIDFromBytes(uuidStr.toByteArray())
+                    this.uuid_ = UUID.nameUUIDFromBytes(this.uuid.toByteArray())
                     id = _uuid_to_long()
                 }
                 ITEM_VIEW_TYPE_SECTION_ITEM -> {
@@ -228,8 +237,8 @@ class TaskwDataProvider {
                     text = makeText(json.optString("description"), swipeReaction)
                     hasStarted = !TextUtils.isEmpty(json.optString("start"))
                     hasAnno = json.optJSONArray("annotations") != null
-                    this.uuidStr = uuidStr
-                    uuid = UUID.fromString(uuidStr)
+                    this.uuid = uuidStr
+                    uuid_ = UUID.fromString(uuidStr)
                     id = _uuid_to_long()
                 }
                 else -> {

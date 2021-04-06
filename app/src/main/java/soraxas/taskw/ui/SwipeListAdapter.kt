@@ -225,7 +225,7 @@ mainList: MainList) : RecyclerView.Adapter<RecyclerView.ViewHolder>(),
     override fun onSwipeItem(holder: RecyclerView.ViewHolder, position: Int, result: Int): SwipeResultAction? {
         Log.d(TAG, "onSwipeItem(position = $position, result = $result)")
         val onPinActions = { taskData: TaskwDataProvider.TaskwData ->
-            mainList.togglePinnedTask(taskData.uuidStr)
+            mainList.togglePinnedTask(taskData.uuid)
             mainList.reload()
             true
         }

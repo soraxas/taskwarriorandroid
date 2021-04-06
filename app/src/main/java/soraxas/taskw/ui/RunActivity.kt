@@ -174,8 +174,16 @@ class RunActivity : AppCompatActivity() {
         ac!!.listeners().remove(progressListener)
     }
 
-    internal inner class RunAdapter(data: ArrayList<String>) : RecyclerView.Adapter<RunAdapterItem>() {
-        var data = ArrayList<String>()
+    internal inner class RunAdapter(data: ArrayList<String>?) : RecyclerView
+    .Adapter<RunAdapterItem>() {
+        var data: ArrayList<String> = ArrayList()
+
+        init {
+            data?.let{
+                this.data.addAll(it)
+            }
+        }
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RunAdapterItem {
             return RunAdapterItem(LayoutInflater.from(parent.context)
                     .inflate(R.layout.item_run_output, parent, false))
@@ -225,8 +233,5 @@ class RunActivity : AppCompatActivity() {
             }
         }
 
-        init {
-            this.data.addAll(data)
-        }
     }
 }
