@@ -74,7 +74,8 @@
                     android:layout_gravity="top|left"
                     android:textColor="@color/Green"
                     android:text="➤"
-                    app:layout_constraintStart_toEndOf="@+id/task_priority" />
+                    app:layout_constraintStart_toEndOf="@+id/task_priority"
+                    android:textSize="18sp" />
 
 
             <!--                    style="@style/IconImage"-->
@@ -87,7 +88,7 @@
 
                     android:textColor="@color/colorText"
                     tools:ignore="RtlHardcoded"
-                    android:paddingLeft="12dp"
+                    android:paddingLeft="4dp"
                     android:paddingRight="4dp"
                     app:layout_constrainedWidth="true"
                     app:layout_constraintHorizontal_bias="0.0"
@@ -97,7 +98,8 @@
                     app:layout_constraintBottom_toBottomOf="parent"
                     android:layout_marginBottom="8dp"
                     android:layout_marginTop="8dp"
-                    app:layout_constraintEnd_toStartOf="@+id/task_annotations_flag" />
+                    app:layout_constraintEnd_toStartOf="@+id/task_annotations_flag"
+                    android:layout_marginStart="4dp" />
 
             <!--                </LinearLayout>-->
 
@@ -153,6 +155,17 @@
                     android:progress="50"
                     tools:layout_editor_absoluteY="1dp"
                     app:layout_constraintEnd_toEndOf="parent" />
+
+            <TextView
+                    android:id="@+id/task_urgency_text"
+                    android:text="0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="6dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toEndOf="@+id/task_priority"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginBottom="4dp" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

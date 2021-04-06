@@ -195,6 +195,9 @@ class TaskwDataProvider {
         lateinit var uuid: UUID
         var id: Long = -1
 
+        val urgency: Double
+            get() = json.optDouble("urgency", 0.0)
+
         private fun _uuid_to_long(): Long {
             return uuid.mostSignificantBits and kotlin.Long.MAX_VALUE
         }

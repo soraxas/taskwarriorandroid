@@ -29,6 +29,7 @@ import soraxas.taskw.R
 import soraxas.taskw.common.Helpers
 import soraxas.taskw.common.data.TaskwDataProvider
 import soraxas.taskw.data.ReportInfo
+import java.text.DecimalFormat
 import kotlin.math.roundToInt
 
 /*
@@ -141,7 +142,9 @@ mainList: MainList) : RecyclerView.Adapter<RecyclerView.ViewHolder>(),
                 //                holder.mContainer.setOnClickListener(mSwipeableViewContainerOnClickListener);
 
                 // set text
+                val formatter = DecimalFormat("#0.0")
                 holder.mTextView.text = item.text
+                holder.mUrgencyText.text = formatter.format(item.urgency)
                 // set all other attributes
                 holder.mAnnoFlag.visibility = item.annoVisibility()
                 holder.mStartedFlag.visibility = item.startedVisibility()
@@ -434,6 +437,7 @@ mainList: MainList) : RecyclerView.Adapter<RecyclerView.ViewHolder>(),
         var mStartedFlag: TextView = v.findViewById(R.id.task_started_flag)
         var mCalLabelContainer: LinearLayout = v.findViewById(R.id.cal_label_container)
         var mTagsLabelContainer: LinearLayout = v.findViewById(R.id.tags_label_container)
+        var mUrgencyText: TextView = v.findViewById(R.id.task_urgency_text)
 
         override fun getSwipeableContainerView(): View {
             return mContainer
