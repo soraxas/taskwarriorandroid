@@ -111,13 +111,13 @@ class EditorActivity : AppCompatActivity() {
 
         // populate project auto complete
         val autoCompProject = findViewById<View>(R.id.editor_project) as AutoCompleteTextView
-        val adapter = ArrayAdapter(this, android.R.layout.select_dialog_item, ac!!.projects)
+        val adapter = ArrayAdapter(this, R.layout.auto_suggestion, ac!!.projects)
         autoCompProject.threshold = 0 //will start working from first character
         autoCompProject.setAdapter(adapter)
 
         // populate tag auto complete
         val autoCompTag = findViewById<View>(R.id.editor_tags) as AutoCompleteTextView
-        val single_word_adapter = AutoTagsSuggestAdapter(this, android.R.layout.select_dialog_item, ac!!.tags)
+        val single_word_adapter = AutoTagsSuggestAdapter(this, R.layout.auto_suggestion, ac!!.tags)
         autoCompTag.threshold = 0 //will start working from first character
         autoCompTag.setAdapter(single_word_adapter)
     }

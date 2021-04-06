@@ -80,8 +80,8 @@ class AutoTagsSuggestAdapter(context: Context, private val resource: Int, privat
                 clear()
                 for (item in filterList) {
                     add(item)
-                    notifyDataSetChanged()
                 }
+                notifyDataSetChanged()
             }
         }
     }

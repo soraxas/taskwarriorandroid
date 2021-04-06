@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/text1"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="10dp"
+    android:textAppearance="?android:attr/textAppearanceLarge"
+    android:textSize="14sp"
+    android:textColor="?android:attr/textColorAlertDialogListItem"
+    android:gravity="center_vertical"
+    android:paddingStart="10dip"
+    android:paddingEnd="10dip"
+    android:paddingTop="8dip"
+    android:paddingBottom="8dip"
+    android:ellipsize="marquee"
+/>
