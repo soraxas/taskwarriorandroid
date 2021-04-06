@@ -16,8 +16,7 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.view.MenuItemCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.kvj.bravo7.form.FormController
 import org.kvj.bravo7.form.impl.ViewFinder.ActivityViewFinder
 import org.kvj.bravo7.form.impl.bundle.ListStringBundleAdapter
@@ -39,6 +38,10 @@ import java.util.*
  * Created by vorobyev on 12/1/15.
  */
 class RunActivity : AppCompatActivity() {
+    private val job = Job()
+    private val workerScope = CoroutineScope(Dispatchers.Default + job)
+    private val uiScope = CoroutineScope(Dispatchers.Main + job)
+
     var form = FormController(ActivityViewFinder(this))
     var controller = controller()
     var logger = Logger.forInstance(this)
@@ -148,11 +151,14 @@ class RunActivity : AppCompatActivity() {
         adapter!!.clear()
         var out = ListAggregator()
         var err = ListAggregator()
-        GlobalScope.launch {
+        workerScope.launch {
             val result = ac!!.taskCustom(input, out, err)
             out.data().toMutableList().addAll(err.data())
-            adapter!!.addAll(out.data().filterNotNull())
-            shareAll()
+
+            uiScope.launch {
+                adapter!!.addAll(out.data().filterNotNull())
+                shareAll()
+            }
         }
     }
 

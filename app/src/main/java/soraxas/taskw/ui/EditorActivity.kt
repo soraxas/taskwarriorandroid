@@ -59,8 +59,8 @@ class EditorActivity : AppCompatActivity() {
         form.add<Any, String?>(TransientAdapter(StringBundleAdapter(), null), App.KEY_EDIT_UUID)
         form.add<Any, Bundle?>(TransientAdapter(object : BundleAdapter<Bundle?>() {
             override operator fun get(bundle: Bundle, name: String, def: Bundle?):
-                    Bundle {
-                return bundle.getBundle(name)!!
+                    Bundle? {
+                return bundle.getBundle(name)
             }
 
             override operator fun set(bundle: Bundle, name: String, value: Bundle?) {
