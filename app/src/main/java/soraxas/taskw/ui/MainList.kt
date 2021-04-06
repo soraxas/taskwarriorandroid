@@ -44,7 +44,7 @@ class MainList : Fragment() {
     var logger = Logger.forInstance(this)
     private var account: String? = null
     private lateinit var mDataProvider: TaskwDataProvider
-    private lateinit var mRecyclerViewSwipeManager: RecyclerViewSwipeManager
+    var mRecyclerViewSwipeManager: RecyclerViewSwipeManager? = null
     private lateinit var mRecyclerViewTouchActionGuardManager:
             RecyclerViewTouchActionGuardManager
 
@@ -83,7 +83,7 @@ class MainList : Fragment() {
         // Change animations are enabled by default since support-v7-recyclerview v22.
         // Disable the change animation in order to make turning back animation of swiped item works properly.
         animator.supportsChangeAnimations = false
-        mRecyclerView.adapter = mRecyclerViewSwipeManager.createWrappedAdapter(mAdapter) // wrap for swiping
+        mRecyclerView.adapter = mRecyclerViewSwipeManager!!.createWrappedAdapter(mAdapter) // wrap for swiping
         mRecyclerView.itemAnimator = animator
 
 
@@ -100,7 +100,7 @@ class MainList : Fragment() {
         //
         // priority: TouchActionGuard > Swipe > DragAndDrop
         mRecyclerViewTouchActionGuardManager.attachRecyclerView(mRecyclerView)
-        mRecyclerViewSwipeManager.attachRecyclerView(mRecyclerView)
+        mRecyclerViewSwipeManager!!.attachRecyclerView(mRecyclerView)
     }
 
     val prefFileName: String = "taskListPref"

@@ -340,6 +340,9 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
             }
 
             override fun checkCanDoRefresh(frame: PtrFrameLayout, content: View, header: View): Boolean {
+                // disallow pull-down when an item is being swapped
+                if ((list.mRecyclerViewSwipeManager?.isSwiping) == true)
+                    return false
                 return PtrDefaultHandler.checkContentCanBePulledDown(frame, findViewById<View>(R.id.list_main_list), header)
             }
         })

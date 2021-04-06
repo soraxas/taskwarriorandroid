@@ -18,7 +18,7 @@
         <color android:color="@color/bg_swipe_item_pinned" />
     </item>
     <item
-            android:right="14dp"
+            android:right="16dp"
             android:height="30dp"
             android:gravity="right|center_vertical">
         <bitmap
