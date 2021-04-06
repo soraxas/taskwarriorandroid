@@ -93,8 +93,10 @@ class TaskwDataProvider {
             }
             // sort by urgency
             val sorted_proj: MutableList<String> = ArrayList(project.keys)
+            // we sort in reverse (larger number first)
             sorted_proj.sortWith(
-                    Comparator { a: String?, b: String? -> project[a]!!.second.compareTo(project[b]!!.second) })
+                    Comparator { a: String?, b: String? -> project[b]!!.second
+                            .compareTo(project[a]!!.second) })
 
             // inject the pinned task at the very front
             if (pinnedTasks.isNotEmpty()) {
