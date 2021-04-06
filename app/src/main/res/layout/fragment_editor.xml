@@ -21,7 +21,7 @@
                 android:hint="Description"
                 android:id="@+id/editor_description"
                 android:layout_width="match_parent"
-                android:singleLine="true"
+                android:singleLine="false"
                 android:layout_height="wrap_content"/>
         </com.google.android.material.textfield.TextInputLayout>
         <Spinner
@@ -60,7 +60,7 @@
                 android:layout_height="wrap_content"
                 android:id="@+id/editor_tags"
                 android:hint="Tags"
-                android:singleLine="true"
+                android:singleLine="false"
             />
         </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
