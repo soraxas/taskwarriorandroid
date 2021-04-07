@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.graphics.drawable.NinePatchDrawable
 import android.os.Build
 import android.os.Bundle
+import android.os.Parcelable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,6 +17,7 @@ import com.h6ah4i.android.widget.advrecyclerview.animator.GeneralItemAnimator
 import com.h6ah4i.android.widget.advrecyclerview.animator.SwipeDismissItemAnimator
 import com.h6ah4i.android.widget.advrecyclerview.decoration.ItemShadowDecorator
 import com.h6ah4i.android.widget.advrecyclerview.decoration.SimpleListDividerDecorator
+import com.h6ah4i.android.widget.advrecyclerview.expandable.RecyclerViewExpandableItemManager
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.RecyclerViewSwipeManager
 import com.h6ah4i.android.widget.advrecyclerview.touchguard.RecyclerViewTouchActionGuardManager
 import kotlinx.coroutines.CoroutineScope
@@ -52,6 +54,9 @@ class MainList : Fragment() {
         return inflater.inflate(R.layout.fragment_list, container, false)
     }
 
+
+    val SAVED_STATE_EXPANDABLE_ITEM_MANAGER: String = "RecyclerViewExpandableItemManager"
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         mRecyclerView = view.findViewById(R.id.list_main_list)
         mRecyclerView.layoutManager = LinearLayoutManager(requireContext(), RecyclerView.VERTICAL, false)
@@ -64,28 +69,28 @@ class MainList : Fragment() {
         // swipe manager
         mRecyclerViewSwipeManager = RecyclerViewSwipeManager()
 
+        // expand manager
+        val eimSavedState: Parcelable? = savedInstanceState?.getParcelable(SAVED_STATE_EXPANDABLE_ITEM_MANAGER)
+        val mRecyclerViewExpandableItemManager = RecyclerViewExpandableItemManager(eimSavedState);
+        mRecyclerViewExpandableItemManager.setOnGroupExpandListener { groupPosition, fromUser, payload ->
+            removeCollapseGroup(mDataProvider.getGroup(groupPosition).groupName)
+        }
+        mRecyclerViewExpandableItemManager.setOnGroupCollapseListener { groupPosition, fromUser, payload ->
+            addCollapseGroup(mDataProvider.getGroup(groupPosition).groupName)
+        }
         //adapter
         mDataProvider = TaskwDataProvider()
-        mAdapter = SwipeListAdapter(mDataProvider, this)
-        mAdapter.eventListener = object : SwipeListAdapter.EventListener {
-            override fun onItemRemoved(position: Int) {
-//                ((SwipeOnLongPressExampleActivity) getActivity()).onItemRemoved(position);
-            }
+        mAdapter = SwipeListAdapter(mDataProvider, mRecyclerViewExpandableItemManager, this)
 
-            override fun onItemPinned(position: Int) {
-//                ((SwipeOnLongPressExampleActivity) getActivity()).onItemPinned(position);
-            }
+        // wrap for expanding
+        var mWrappedAdapter = mRecyclerViewExpandableItemManager.createWrappedAdapter(mAdapter)
 
-            override fun onItemViewClicked(v: View?, pinned: Boolean) {}
-        }
+
         val animator: GeneralItemAnimator = SwipeDismissItemAnimator()
 
         // Change animations are enabled by default since support-v7-recyclerview v22.
         // Disable the change animation in order to make turning back animation of swiped item works properly.
         animator.supportsChangeAnimations = false
-        mRecyclerView.adapter = mRecyclerViewSwipeManager!!.createWrappedAdapter(mAdapter) // wrap for swiping
-        mRecyclerView.itemAnimator = animator
-
 
         // additional decorations
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -95,17 +100,24 @@ class MainList : Fragment() {
         }
         mRecyclerView.addItemDecoration(SimpleListDividerDecorator(ContextCompat.getDrawable(requireContext(), R.drawable.list_divider_h), true))
 
+
+
+        mWrappedAdapter = mRecyclerViewSwipeManager!!.createWrappedAdapter(mWrappedAdapter) // wrap for swiping
+        mRecyclerView.adapter = mWrappedAdapter
+        mRecyclerView.itemAnimator = animator
+
         // NOTE:
         // The initialization order is very important! This order determines the priority of touch event handling.
         //
         // priority: TouchActionGuard > Swipe > DragAndDrop
         mRecyclerViewTouchActionGuardManager.attachRecyclerView(mRecyclerView)
         mRecyclerViewSwipeManager!!.attachRecyclerView(mRecyclerView)
+        mRecyclerViewExpandableItemManager.attachRecyclerView(mRecyclerView)
     }
 
     val prefFileName: String = "taskListPref"
-
     val pinnedTasksPrefKey: String = "pinnedTasksList"
+    val collapsedGroupPrefKey: String = "pinnedTasksList"
 
     fun getPinnedTasks(): Set<String> {
         context?.let {
@@ -130,7 +142,47 @@ class MainList : Fragment() {
                 pinnedTasks.add(uuid)
             putStringSet(pinnedTasksPrefKey, pinnedTasks)
             apply()
-//            commit()
+        }
+        return true
+    }
+
+    fun getCollapsedGroups(): Set<String> {
+        context?.let {
+            val pref: SharedPreferences = it.getSharedPreferences(prefFileName, Context.MODE_PRIVATE)
+            return pref.getStringSet(collapsedGroupPrefKey, HashSet<String>())!!
+        }
+        return HashSet()
+    }
+
+    fun addCollapseGroup(groupName: String): Boolean {
+        return toggleCollapseGroup(groupName, 1)
+    }
+
+    fun removeCollapseGroup(groupName: String): Boolean {
+        return toggleCollapseGroup(groupName, -1)
+    }
+
+    fun toggleCollapseGroup(groupName: String, value: Int = 0): Boolean {
+        val sharedPref = context?.getSharedPreferences(prefFileName,
+                Context.MODE_PRIVATE) ?: return false
+        with(sharedPref.edit()) {
+            // make a copy as we should not modify the result returned by sharedPref
+            // (or else it wont detect any new changes)
+            val collapsedGroup = HashSet(sharedPref.getStringSet(collapsedGroupPrefKey,
+                    HashSet<String>())!!)
+            if (value == 0) {
+                // toggle task
+                if (groupName in collapsedGroup)
+                    collapsedGroup.remove(groupName)
+                else
+                    collapsedGroup.add(groupName)
+            } else if (value == 1) {
+                collapsedGroup.add(groupName)
+            } else if (value == -1) {
+                collapsedGroup.remove(groupName)
+            }
+            putStringSet(collapsedGroupPrefKey, collapsedGroup)
+            apply()
         }
         return true
     }

@@ -230,10 +230,10 @@ class EditorActivity : AppCompatActivity() {
                 changes.add(String.format("tags:%s", Helpers.join(",", tags)))
             }
         }
-        val uuid = form.getValue<String>(App.KEY_EDIT_UUID)!!
+        val uuid = form.getValue<String>(App.KEY_EDIT_UUID)
         val completed = form.getValue(App.KEY_EDIT_STATUS, Int::class.java)!! > 0
         logger.d("Saving change:", uuid, changes, completed)
-        return if (TextUtils.isEmpty(uuid)) { // Add new
+        return if (uuid == null || uuid == "") { // Add new
             if (completed) ac!!.taskLog(changes) else ac!!.taskAdd(changes)
         } else {
             ac!!.taskModify(uuid, changes)

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.text.TextUtils
 import android.view.View
+import com.h6ah4i.android.widget.advrecyclerview.adapter.ItemIdComposer
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.RecyclerViewSwipeManager
 import org.json.JSONObject
 import soraxas.taskw.R
@@ -12,24 +13,12 @@ import java.util.*
 import kotlin.collections.HashMap
 import kotlin.collections.LinkedHashMap
 
-/*
- *    Copyright (C) 2015 Haruki Hasegawa
- *
- *    Licensed under the Apache License, Version 2.0 (the "License");
- *    you may not use this file except in compliance with the License.
- *    You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *    Unless required by applicable law or agreed to in writing, software
- *    distributed under the License is distributed on an "AS IS" BASIS,
- *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *    See the License for the specific language governing permissions and
- *    limitations under the License.
- */
 class TaskwDataProvider {
     var mUUIDtoData: LinkedHashMap<String, TaskwData> = LinkedHashMap()
-    var mUUIDtoDataValuesArray: MutableList<TaskwData> = ArrayList()
+//    var mUUIDtoDataValuesArray: MutableList<TaskwData> = ArrayList()
+
+    private var groups: MutableList<TaskwData> = ArrayList()
+    private var items: MutableList<MutableList<TaskwData>> = ArrayList()
 
     private var mLastRemovedData: TaskwData? = null
     private var mLastRemovedPosition = -1
@@ -56,11 +45,25 @@ class TaskwDataProvider {
         val newUUIDtoData = LinkedHashMap<String, TaskwData>()
         val pinnedTasks: MutableList<TaskwData> = ArrayList()
 
+        groups.clear()
+        items.clear()
+
         if (!useProjectAsDivider) {
+            // add the header
+            val projKeyAsUuid = "[All projects]"
+            val headerTitle = "$projKeyAsUuid (${list.size})"
+            val group = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_HEADER,
+                    projKeyAsUuid,
+                    JSONObject().put("text", headerTitle), swipeReaction)
+            newUUIDtoData[projKeyAsUuid] = group
+            groups.add(group)
+            items.add(ArrayList<TaskwData>())
             for (json in list) {
                 val uuid: String = json.optString("uuid")
-                newUUIDtoData[uuid] = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_ITEM,
+                val item = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_ITEM,
                         uuid, json, swipeReaction)
+                newUUIDtoData[uuid] = item
+                items[items.size - 1].add(item)  // add to latest group
             }
         } else {
             // a map of list of tasks (where each list of task is a project)
@@ -115,11 +118,15 @@ class TaskwDataProvider {
                     }
                     // add project count to the end of the key
                     val headerTitle = "$projKeyAsUuid (${this.size})"
-                    newUUIDtoData[projKeyAsUuid] = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_HEADER,
+                    val group = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_HEADER,
                             projKeyAsUuid,
                             JSONObject().put("text", headerTitle), swipeReaction)
+                    newUUIDtoData[projKeyAsUuid] = group
+                    groups.add(group)
+                    items.add(ArrayList<TaskwData>())
                     for (task in this) {
                         newUUIDtoData[task.uuid] = task
+                        items[items.size - 1].add(task)  // add to latest group
                     }
                 }
             }
@@ -127,22 +134,14 @@ class TaskwDataProvider {
 
         // set the member variable as the newly built (and ordered) result
         mUUIDtoData = newUUIDtoData
-        mUUIDtoDataValuesArray = ArrayList(newUUIDtoData.values)
     }
 
     fun getJsonWithTaskUuid(uuid: String): JSONObject? {
         return mUUIDtoData[uuid]?.json
     }
 
-    val count: Int
-        get() = mUUIDtoDataValuesArray.size
-
-    fun getItem(index: Int): TaskwData {
-        if (index < 0 || index >= count) {
-            throw IndexOutOfBoundsException("index = $index")
-        }
-        return mUUIDtoDataValuesArray[index]
-    }
+//    val count: Int
+//        get() = mUUIDtoDataValuesArray.size
 
 //    fun undoLastRemoval(): Int {
 //        return if (mLastRemovedData != null) {
@@ -178,14 +177,33 @@ class TaskwDataProvider {
 //        mLastRemovedPosition = -1
 //    }
 
-    fun removeItem(position: Int) {
-        // this might make the view be in inconsistent state compared to the hashmap
-        val removedItem = mUUIDtoDataValuesArray.removeAt(position)
-        mLastRemovedData = removedItem
-        mLastRemovedPosition = position
+
+    fun getGroupSize(): Int {
+        return groups.size
     }
 
-    class TaskwData {
+    fun getItemSize(groupPos: Int): Int {
+        return items[groupPos].size
+    }
+
+    fun getGroup(groupPos: Int): TaskwData {
+        return groups[groupPos]
+    }
+
+    fun getItem(groupPos: Int, itemPos: Int): TaskwData {
+        return items[groupPos][itemPos]
+    }
+
+    fun removeGroup(groupPos: Int) {
+        groups.removeAt(groupPos)
+        items.removeAt(groupPos)
+    }
+
+    fun removeItem(groupPos: Int, itemPos: Int) {
+        items[groupPos].removeAt(itemPos)
+    }
+
+    class TaskwData(viewType: Int, uuid: String, json: JSONObject, swipeReaction: Int) {
         lateinit var text: String
         var hasAnno = false
         var hasStarted = false
@@ -197,6 +215,11 @@ class TaskwDataProvider {
         lateinit var uuid_: UUID
         var id: Long = -1
 
+        val groupName: String
+            get() = if (viewType != ITEM_VIEW_TYPE_SECTION_HEADER)
+                    throw IllegalAccessError("Only section header has group name")
+                else uuid
+
         val urgency: Double
             get() = json.optDouble("urgency", 0.0)
 
@@ -204,17 +227,23 @@ class TaskwDataProvider {
             get() = json.optString("project", "")
 
         private fun _uuid_to_long(): Long {
-            return uuid_.mostSignificantBits and kotlin.Long.MAX_VALUE
+            var id: Long = uuid_.mostSignificantBits
+            if (id < 0) {
+                id = -((-id) % ItemIdComposer.MAX_GROUP_ID)
+            } else {
+                id %= ItemIdComposer.MAX_GROUP_ID
+            }
+            return id
+//            return uuid_.mostSignificantBits and Long.MAX_VALUE
         }
 
-        internal constructor(viewType: Int, uuid: String, json: JSONObject,
-                             swipeReaction:
-                             Int) {
+        init {
             set_contained_values(viewType, uuid, json, swipeReaction)
         }
 
         fun set_contained_values(viewType: Int, uuidStr: String, json: JSONObject,
                                  swipeReaction: Int) {
+            this.viewType = viewType
             when (viewType) {
                 ITEM_VIEW_TYPE_SECTION_HEADER -> {
                     this.json = json
@@ -236,7 +265,7 @@ class TaskwDataProvider {
                     id = _uuid_to_long()
                 }
                 else -> {
-                    throw AssertionError("Assertion failed")
+                    throw IllegalArgumentException("Unsupported view type")
                 }
             }
         }
