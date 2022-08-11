@@ -197,7 +197,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
                         val uuid = json.optString("uuid")!!
                         doOp("Added new annotation", uuid, "annotate", text.toString(),
                                 view =
-                        view)
+                                view)
                         list.reload()
                     }
                     title(text = "Add new annotation")
@@ -242,29 +242,29 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
                 }
                 when (type) {
                     "project" -> {
-                        add(Pair.create(App.KEY_EDIT_PROJECT, json.optString("project")))
+                        add(Pair(App.KEY_EDIT_PROJECT, json.optString("project")))
                     }
                     "tags" -> {
                         val tags = Helpers.join(" ",
                                 Helpers.array2List(json.optJSONArray("tags")))
-                        add(Pair.create(App.KEY_EDIT_TAGS, tags))
+                        add(Pair(App.KEY_EDIT_TAGS, tags))
                     }
                     "due" -> {
-                        add(Pair.create(App.KEY_EDIT_DUE,
+                        add(Pair(App.KEY_EDIT_DUE,
                                 Helpers.asDate(json.optString("due"), null)))
                     }
                     "wait" -> {
-                        add(Pair.create(App.KEY_EDIT_WAIT,
+                        add(Pair(App.KEY_EDIT_WAIT,
                                 Helpers.asDate(json.optString("wait"), null)))
                     }
                     "scheduled" -> {
-                        add(Pair.create(App.KEY_EDIT_SCHEDULED,
+                        add(Pair(App.KEY_EDIT_SCHEDULED,
                                 Helpers.asDate(json.optString("scheduled"), null)))
                     }
                     "recur" -> {
-                        add(Pair.create(App.KEY_EDIT_UNTIL,
-                                Helpers.asDate(json.optString("until"), null)),
-                                Pair.create(App.KEY_EDIT_RECUR, json.optString("recur")))
+                        add(Pair(App.KEY_EDIT_UNTIL, Helpers.asDate(json.optString
+                        ("until"), null)),
+                                Pair(App.KEY_EDIT_RECUR, json.optString("recur")))
                     }
                 }
             }
@@ -463,7 +463,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
     }
 
     public fun doOp(message: String, uuid: String, op: String, vararg ops: String,
-                     view: View?) {
+                    view: View?) {
         ac?.let {
             launch(Dispatchers.Default) {
                 val operation = op.toLowerCase(Locale.ROOT)
@@ -494,7 +494,7 @@ class MainActivity : AppCompatActivity(), Controller.ToastMessageListener, Corou
                 if (null != result) {
                     controller.toastMessage(result, true)
                 } else {
-                    getSnackbar(message = message, length = Snackbar.LENGTH_INDEFINITE,
+                    getSnackbar(message = message,
                             parentView = view)
                             .setAction("UNDO") {
                                 undo()

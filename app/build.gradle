@@ -26,7 +26,7 @@ android {
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.0.0'
-    implementation 'com.google.android.material:material:1.0.0'
+    implementation 'com.google.android.material:material:1.3.0'
     implementation 'androidx.cardview:cardview:1.0.0'
     implementation 'androidx.recyclerview:recyclerview:1.0.0'
 //    compile 'com.android.support:support-v4:25.3.0'
@@ -39,7 +39,7 @@ dependencies {
 
     implementation 'com.afollestad.material-dialogs:core:3.1.1'
     implementation 'com.afollestad.material-dialogs:bottomsheets:3.1.1'
-    implementation "androidx.core:core-ktx:+"
+    implementation "androidx.core:core-ktx:$androidxcore_version"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
 

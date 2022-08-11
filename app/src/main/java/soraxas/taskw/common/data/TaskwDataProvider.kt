@@ -14,72 +14,82 @@ import kotlin.collections.HashMap
 import kotlin.collections.LinkedHashMap
 
 class TaskwDataProvider {
-    var mUUIDtoData: LinkedHashMap<String, TaskwData> = LinkedHashMap()
+    var mUUIDtoData: LinkedHashMap<String, TaskwDataItem> = LinkedHashMap()
 //    var mUUIDtoDataValuesArray: MutableList<TaskwData> = ArrayList()
 
-    private var groups: MutableList<TaskwData> = ArrayList()
-    private var items: MutableList<MutableList<TaskwData>> = ArrayList()
+    private var groups: MutableList<TaskwDataGroup> = ArrayList()
+    private var items: MutableList<MutableList<TaskwDataItem>> = ArrayList()
 
-    private var mLastRemovedData: TaskwData? = null
-    private var mLastRemovedPosition = -1
     private val useProjectAsDivider = true
 
-    private fun getOrCreateItem(item_type: Int, uuid: String, json: JSONObject,
-                                swipeReaction: Int): TaskwData {
-        mUUIDtoData[uuid]?.let {
-            if (it.json != json) {
-                // need to update existing items value
-                it.set_contained_values(item_type, uuid, json, swipeReaction)
-            }
-            return it
-        }
-        // need to create a new item
-        return TaskwData(item_type, uuid, json, swipeReaction)
-    }
+//    private fun getOrCreateItem(uuid: String, json: JSONObject,
+//                                swipeReaction: Int): TaskwDataItem {
+//        (mUUIDtoData[uuid] as TaskwDataItem).let {
+//            if (it.json != json) {
+//                // need to update existing items value
+//                it.set_contained_values(uuid, json, swipeReaction)
+//            }
+//            return it
+//        }
+//        // need to create a new item
+//        return TaskwDataItem(uuid, json, swipeReaction)
+//    }
+//
+//    private fun getOrCreateGroup(uuid: String, json: JSONObject,
+//                                swipeReaction: Int): TaskwDataGroup {
+//        (mUUIDtoData[uuid] as TaskwDataGroup).let {
+//            if (it.json != json) {
+//                // need to update existing items value
+//                it.set_contained_values(uuid, json, swipeReaction)
+//            }
+//            return it
+//        }
+//        // need to create a new item
+//        return TaskwDataGroup(uuid, json, swipeReaction)
+//    }
 //    var urgMin: Int = 0
 //    var urgMax: Int = 100
 
     fun updateReportInfo(list: List<JSONObject>, allPinnedTasks: Set<String>) {
         val swipeReaction = RecyclerViewSwipeManager.REACTION_CAN_SWIPE_UP or RecyclerViewSwipeManager.REACTION_CAN_SWIPE_DOWN
 
-        val newUUIDtoData = LinkedHashMap<String, TaskwData>()
-        val pinnedTasks: MutableList<TaskwData> = ArrayList()
+        val newUUIDtoData = LinkedHashMap<String, TaskwDataItem>()
+        val pinnedTasks: MutableList<TaskwDataItem> = ArrayList()
 
         groups.clear()
         items.clear()
 
         if (!useProjectAsDivider) {
             // add the header
-            val projKeyAsUuid = "[All projects]"
-            val headerTitle = "$projKeyAsUuid (${list.size})"
-            val group = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_HEADER,
-                    projKeyAsUuid,
-                    JSONObject().put("text", headerTitle), swipeReaction)
-            newUUIDtoData[projKeyAsUuid] = group
+            val projectName = "[All projects]"
+            val headerTitle = "$projectName (${list.size})"
+//            val group = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_HEADER,
+//                    projectName,
+//                    JSONObject().put("text", headerTitle), swipeReaction)
+            val group = TaskwDataGroup(projectName, list.size, swipeReaction)
+//            newUUIDtoData[projectName] = group
             groups.add(group)
-            items.add(ArrayList<TaskwData>())
+            items.add(ArrayList<TaskwDataItem>())
             for (json in list) {
                 val uuid: String = json.optString("uuid")
-                val item = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_ITEM,
-                        uuid, json, swipeReaction)
+                val item = TaskwDataItem(uuid, json, swipeReaction)
                 newUUIDtoData[uuid] = item
                 items[items.size - 1].add(item)  // add to latest group
             }
         } else {
             // a map of list of tasks (where each list of task is a project)
-            val project: MutableMap<String, MutableList<TaskwData>> = HashMap()
+            val project: MutableMap<String, MutableList<TaskwDataItem>> = HashMap()
             val projectUrgency: MutableMap<String, Double> = HashMap()
             for (json in list) {
                 val uuid = json.optString("uuid")
-                val task = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_ITEM, uuid, json,
-                        swipeReaction)
+                val task = TaskwDataItem(uuid, json, swipeReaction)
                 if (uuid in allPinnedTasks) {
                     // retrieve the pinned tasks and display them at the front
                     pinnedTasks.add(task)
                     continue
                 }
                 //
-                lateinit var projContainer: MutableList<TaskwData>
+                lateinit var projContainer: MutableList<TaskwDataItem>
                 project[task.project]?.let {
                     // contain existing project container
                     projContainer = it
@@ -118,12 +128,10 @@ class TaskwDataProvider {
                     }
                     // add project count to the end of the key
                     val headerTitle = "$projKeyAsUuid (${this.size})"
-                    val group = getOrCreateItem(ITEM_VIEW_TYPE_SECTION_HEADER,
-                            projKeyAsUuid,
-                            JSONObject().put("text", headerTitle), swipeReaction)
-                    newUUIDtoData[projKeyAsUuid] = group
+                    val group = TaskwDataGroup(projKeyAsUuid, this.size, swipeReaction)
+//                    newUUIDtoData[projKeyAsUuid] = group
                     groups.add(group)
-                    items.add(ArrayList<TaskwData>())
+                    items.add(ArrayList<TaskwDataItem>())
                     for (task in this) {
                         newUUIDtoData[task.uuid] = task
                         items[items.size - 1].add(task)  // add to latest group
@@ -137,6 +145,7 @@ class TaskwDataProvider {
     }
 
     fun getJsonWithTaskUuid(uuid: String): JSONObject? {
+//        return (mUUIDtoData[uuid] as TaskwDataItem).json
         return mUUIDtoData[uuid]?.json
     }
 
@@ -186,11 +195,11 @@ class TaskwDataProvider {
         return items[groupPos].size
     }
 
-    fun getGroup(groupPos: Int): TaskwData {
+    fun getGroup(groupPos: Int): TaskwDataGroup {
         return groups[groupPos]
     }
 
-    fun getItem(groupPos: Int, itemPos: Int): TaskwData {
+    fun getItem(groupPos: Int, itemPos: Int): TaskwDataItem {
         return items[groupPos][itemPos]
     }
 
@@ -203,30 +212,15 @@ class TaskwDataProvider {
         items[groupPos].removeAt(itemPos)
     }
 
-    class TaskwData(viewType: Int, uuid: String, json: JSONObject, swipeReaction: Int) {
+    abstract class TaskwData {
         lateinit var text: String
-        var hasAnno = false
-        var hasStarted = false
-        lateinit var json: JSONObject
         var viewType = 0
             private set
-        var isPinned = false
-        lateinit var uuid: String
+        abstract var uuid: String
         lateinit var uuid_: UUID
         var id: Long = -1
 
-        val groupName: String
-            get() = if (viewType != ITEM_VIEW_TYPE_SECTION_HEADER)
-                    throw IllegalAccessError("Only section header has group name")
-                else uuid
-
-        val urgency: Double
-            get() = json.optDouble("urgency", 0.0)
-
-        val project: String
-            get() = json.optString("project", "")
-
-        private fun _uuid_to_long(): Long {
+        protected fun _uuid_to_long(): Long {
             var id: Long = uuid_.mostSignificantBits
             if (id < 0) {
                 id = -((-id) % ItemIdComposer.MAX_GROUP_ID)
@@ -237,37 +231,43 @@ class TaskwDataProvider {
 //            return uuid_.mostSignificantBits and Long.MAX_VALUE
         }
 
+    }
+
+    class TaskwDataItem(override var uuid: String, json: JSONObject,
+                        swipeReaction:
+                        Int) : TaskwData() {
+        lateinit var json: JSONObject
+        val hasAnno: Boolean
+            get() = json.optJSONArray("annotations") != null
+        val hasStarted: Boolean
+            get() = !TextUtils.isEmpty(json.optString("start"))
+        var isPinned = false
+
+        val urgency: Double
+            get() = json.optDouble("urgency", 0.0)
+
+        val project: String
+            get() = json.optString("project", "")
+
+
+        val annoVisibility: Int
+            get() = if (hasAnno) View.VISIBLE else View.GONE
+
+
+        val startedVisibility: Int
+            get() = if (hasStarted) View.VISIBLE else View.INVISIBLE
+
         init {
-            set_contained_values(viewType, uuid, json, swipeReaction)
+            set_contained_values(uuid, json, swipeReaction)
         }
 
-        fun set_contained_values(viewType: Int, uuidStr: String, json: JSONObject,
+        fun set_contained_values(uuidStr: String, json: JSONObject,
                                  swipeReaction: Int) {
-            this.viewType = viewType
-            when (viewType) {
-                ITEM_VIEW_TYPE_SECTION_HEADER -> {
-                    this.json = json
-                    this.text = json.optString("text")
-                    this.uuid = uuidStr
-                    // header's uuid is not a valid uuid format. We will construct a
-                    // uuid with its byte-array instead.
-                    this.uuid_ = UUID.nameUUIDFromBytes(this.uuid.toByteArray())
-                    id = _uuid_to_long()
-                }
-                ITEM_VIEW_TYPE_SECTION_ITEM -> {
-                    this.json = json
-                    this.viewType = viewType
-                    text = makeText(json.optString("description"), swipeReaction)
-                    hasStarted = !TextUtils.isEmpty(json.optString("start"))
-                    hasAnno = json.optJSONArray("annotations") != null
-                    this.uuid = uuidStr
-                    uuid_ = UUID.fromString(uuidStr)
-                    id = _uuid_to_long()
-                }
-                else -> {
-                    throw IllegalArgumentException("Unsupported view type")
-                }
-            }
+            this.json = json
+            text = json.optString("description")
+            this.uuid = uuidStr
+            uuid_ = UUID.fromString(uuidStr)
+            id = _uuid_to_long()
         }
 
         fun buildCalLabels(context: Context,
@@ -305,25 +305,28 @@ class TaskwDataProvider {
             }
             return views
         }
+    }
 
-        val isSectionHeader: Boolean
-            get() = false
+    class TaskwDataGroup(groupName: String, val groupItemNum: Int, swipeReaction: Int) :
+            TaskwData() {
+        var isPinned = false
+        lateinit var groupName: String
 
-        override fun toString(): String {
-            return text
+        override var uuid: String = ""
+            get() = groupName
+
+        init {
+            set_contained_values(groupName, swipeReaction)
         }
 
-        fun annoVisibility(): Int {
-            return if (hasAnno) View.VISIBLE else View.GONE
-        }
-
-        fun startedVisibility(): Int {
-            return if (hasStarted) View.VISIBLE else View.INVISIBLE
-        }
-
-        private fun makeText(text: String, swipeReaction: Int): String {
-            return text
-            //            return String.valueOf(id) + " - " + text;
+        fun set_contained_values(groupName: String,
+                                 swipeReaction: Int) {
+            this.text = groupName
+            this.groupName = groupName
+            // header's uuid is not a valid uuid format. We will construct a
+            // uuid with its byte-array instead.
+            this.uuid_ = UUID.nameUUIDFromBytes(this.uuid.toByteArray())
+            id = _uuid_to_long()
         }
     }
 

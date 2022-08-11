@@ -1,29 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:layout_width="match_parent"
-    android:layout_height="match_parent">
+        style="@style/AppTheme"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+<!--    <com.google.android.material.chip.ChipGroup-->
+<!--            style="@style/commonListItemStyle"-->
+<!--            android:id="@+id/chipGroup"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content">-->
+
+<!--        &lt;!&ndash; Chips can be declared here, or added dynamically. &ndash;&gt;-->
+
+<!--        <com.google.android.material.chip.Chip-->
+<!--                android:id="@+id/chip1"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="haha" />-->
+
+<!--        <com.google.android.material.chip.Chip-->
+<!--                android:id="@+id/chip"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:text="haha" />-->
+<!--    </com.google.android.material.chip.ChipGroup>-->
+
     <LinearLayout
             android:layout_marginTop="5dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
+
         <android.widget.ImageButton
                 android:id="@+id/editor_type_switch"
                 android:layout_gravity="center_vertical"
                 style="@style/IconButton"
-                android:layout_weight="0"/>
+                android:layout_weight="0" />
+
         <com.google.android.material.textfield.TextInputLayout
                 android:layout_weight="1"
                 android:layout_width="0dp"
                 android:layout_gravity="bottom"
                 android:layout_height="wrap_content">
+
             <EditText
-                android:hint="Description"
-                android:id="@+id/editor_description"
-                android:layout_width="match_parent"
-                android:singleLine="false"
-                android:layout_height="wrap_content"/>
+                    android:hint="Description"
+                    android:id="@+id/editor_description"
+                    android:layout_width="match_parent"
+                    android:singleLine="false"
+                    android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
+
         <Spinner
                 style="@style/Base.Widget.AppCompat.Spinner.Underlined"
                 android:id="@+id/editor_priority"
@@ -31,123 +59,143 @@
                 android:layout_weight="0"
                 android:minWidth="50dp"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content" />
     </LinearLayout>
+
     <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
+
         <com.google.android.material.textfield.TextInputLayout
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content">
-            <soraxas.taskw.utils.InstantAutoComplete
                 android:layout_weight="1"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/editor_project"
-                android:hint="Project"
-                android:singleLine="true"
-            />
-        </com.google.android.material.textfield.TextInputLayout>
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content">
+                android:layout_width="0dp"
+                android:layout_height="wrap_content">
+
             <soraxas.taskw.utils.InstantAutoComplete
+                    android:layout_weight="1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/editor_project"
+                    android:hint="Project"
+                    android:singleLine="true" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
                 android:layout_weight="1"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/editor_tags"
-                android:hint="Tags"
-                android:singleLine="false"
-            />
+                android:layout_width="0dp"
+                android:layout_height="wrap_content">
+
+            <soraxas.taskw.utils.InstantAutoComplete
+                    android:layout_weight="1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/editor_tags"
+                    android:hint="Tags"
+                    android:singleLine="false" />
         </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
+
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
         <com.google.android.material.textfield.TextInputLayout
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content">
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content">
+
             <EditText
-                android:hint="Due"
-                android:id="@+id/editor_due"
-                android:layout_width="match_parent"
-                android:singleLine="true"
-                android:layout_height="wrap_content"/>
+                    android:hint="Due"
+                    android:id="@+id/editor_due"
+                    android:layout_width="match_parent"
+                    android:singleLine="true"
+                    android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
+
         <android.widget.ImageButton
-            android:id="@+id/editor_due_btn"
-            style="@style/IconButton"
-            android:src="@drawable/ic_action_date"/>
+                android:id="@+id/editor_due_btn"
+                style="@style/IconButton"
+                android:src="@drawable/ic_action_date" />
+
         <com.google.android.material.textfield.TextInputLayout
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content">
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content">
+
             <EditText
-                android:hint="Wait"
-                android:id="@+id/editor_wait"
-                android:layout_width="match_parent"
-                android:singleLine="true"
-                android:layout_height="wrap_content"/>
+                    android:hint="Wait"
+                    android:id="@+id/editor_wait"
+                    android:layout_width="match_parent"
+                    android:singleLine="true"
+                    android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
+
         <android.widget.ImageButton
-            android:id="@+id/editor_wait_btn"
-            style="@style/IconButton"
-            android:src="@drawable/ic_action_date"/>
+                android:id="@+id/editor_wait_btn"
+                style="@style/IconButton"
+                android:src="@drawable/ic_action_date" />
     </LinearLayout>
+
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
         <com.google.android.material.textfield.TextInputLayout
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content">
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content">
+
             <EditText
-                android:hint="Scheduled"
-                android:id="@+id/editor_scheduled"
-                android:layout_width="match_parent"
-                android:singleLine="true"
-                android:layout_height="wrap_content"/>
+                    android:hint="Scheduled"
+                    android:id="@+id/editor_scheduled"
+                    android:layout_width="match_parent"
+                    android:singleLine="true"
+                    android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
+
         <android.widget.ImageButton
-            android:id="@+id/editor_scheduled_btn"
-            style="@style/IconButton"
-            android:src="@drawable/ic_action_date"/>
+                android:id="@+id/editor_scheduled_btn"
+                style="@style/IconButton"
+                android:src="@drawable/ic_action_date" />
     </LinearLayout>
+
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
         <com.google.android.material.textfield.TextInputLayout
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content">
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content">
+
             <EditText
-                android:hint="Recurrence"
-                android:id="@+id/editor_recur"
-                android:layout_width="match_parent"
-                android:singleLine="true"
-                android:layout_height="wrap_content"/>
+                    android:hint="Recurrence"
+                    android:id="@+id/editor_recur"
+                    android:layout_width="match_parent"
+                    android:singleLine="true"
+                    android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
+
         <com.google.android.material.textfield.TextInputLayout
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content">
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content">
+
             <EditText
-                android:hint="Until"
-                android:id="@+id/editor_until"
-                android:layout_width="match_parent"
-                android:singleLine="true"
-                android:layout_height="wrap_content"/>
+                    android:hint="Until"
+                    android:id="@+id/editor_until"
+                    android:layout_width="match_parent"
+                    android:singleLine="true"
+                    android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
+
         <android.widget.ImageButton
-            android:id="@+id/editor_until_btn"
-            style="@style/IconButton"
-            android:src="@drawable/ic_action_date"/>
+                android:id="@+id/editor_until_btn"
+                style="@style/IconButton"
+                android:src="@drawable/ic_action_date" />
     </LinearLayout>
 </LinearLayout>

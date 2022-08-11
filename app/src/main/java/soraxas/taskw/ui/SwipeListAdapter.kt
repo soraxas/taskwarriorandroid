@@ -3,12 +3,14 @@ package soraxas.taskw.ui
 import android.app.AlertDialog
 import android.content.Context
 import android.content.DialogInterface
+import android.graphics.Color
 import android.graphics.drawable.Animatable
 import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.core.graphics.ColorUtils
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
@@ -17,6 +19,7 @@ import com.h6ah4i.android.widget.advrecyclerview.expandable.ExpandableItemState
 import com.h6ah4i.android.widget.advrecyclerview.expandable.ExpandableItemViewHolder
 import com.h6ah4i.android.widget.advrecyclerview.expandable.ExpandableSwipeableItemAdapter
 import com.h6ah4i.android.widget.advrecyclerview.expandable.RecyclerViewExpandableItemManager
+import com.h6ah4i.android.widget.advrecyclerview.swipeable.RecyclerViewSwipeManager
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.SwipeableItemConstants
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.SwipeableItemState
 import com.h6ah4i.android.widget.advrecyclerview.swipeable.action.SwipeResultAction
@@ -36,6 +39,7 @@ import soraxas.taskw.common.Helpers
 import soraxas.taskw.common.data.TaskwDataProvider
 import soraxas.taskw.data.ReportInfo
 import java.text.DecimalFormat
+import java.util.*
 import kotlin.math.roundToInt
 
 /*
@@ -456,8 +460,10 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider,
 
 
     class MyGroupViewHolder(v: View) : MyBaseViewHolder(v) {
-        val mTextView: TextView = v.findViewById(R.id.task_project_name)
+        val mProjectName: TextView = v.findViewById(R.id.task_project_name)
+        val mProjectTasksCount: TextView = v.findViewById(R.id.task_project_tasks_count)
         val mIndicator: ImageView = v.findViewById(R.id.indicator)
+        val mTopLineHighlight: ImageView = v.findViewById(R.id.top_line_highlight)
 
 //        var mIndicator: ExpandableItemIndicator
 //
@@ -492,14 +498,16 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider,
 
     private class SwipeLeftResultAction internal constructor(
             private val mAdapter: SwipeListAdapter,
-            private val mPosition: Int,
+            private val groupPos: Int,
+            private val itemPos: Int,
             private val onPinAction: (TaskwDataProvider.TaskwData) -> Boolean
     ) :
             SwipeResultActionMoveToSwipedDirection() {
         private var mSetPinned = false
         override fun onPerformAction() {
-//            super.onPerformAction()
-//            val item = mAdapter.mProvider.getItem(mPosition)
+            super.onPerformAction()
+            onPinAction(mAdapter.mProvider.getItem(groupPos, itemPos))
+
 //
 //            onPinAction(item)
 //            mAdapter.mProvider.removeItem(mPosition)
@@ -512,6 +520,11 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider,
 //                mAdapter.notifyItemChanged(mPosition)
 //                mSetPinned = true
 //            }
+        }
+
+        override fun getResultActionType(): Int {
+            return RecyclerViewSwipeManager.AFTER_SWIPE_REACTION_REMOVE_ITEM
+//            return RecyclerViewSwipeManager.AFTER_SWIPE_REACTION_MOVE_TO_SWIPED_DIRECTION
         }
 
         override fun onSlideAnimationEnd() {
@@ -532,9 +545,7 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider,
             super.onPerformAction()
             mAdapter.listener?.let {
                 it.onStatus(mAdapter.mProvider.getItem(groupPosition, childPosition)
-                        .json,
-                        view = mAdapter
-                                .mainList.view)
+                        .json, view = mAdapter.mainList.view)
                 // mark as done
                 mAdapter.mProvider.removeItem(groupPosition, childPosition)
                 mAdapter.mExpandableItemManager.notifyChildItemRemoved(groupPosition,
@@ -672,8 +683,8 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider,
         holder.mTextView.text = item.text
         holder.mUrgencyText.text = formatter.format(item.urgency)
         // set all other attributes
-        holder.mAnnoFlag.visibility = item.annoVisibility()
-        holder.mStartedFlag.visibility = item.startedVisibility()
+        holder.mAnnoFlag.visibility = item.annoVisibility
+        holder.mStartedFlag.visibility = item.startedVisibility
 
         // add calendar labels
         val viewContext = holder.mTextView.context
@@ -722,10 +733,35 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider,
 //        TODO("Not yet implemented")
     }
 
+    private fun interpolate(a: Float, b: Float, proportion: Float): Float {
+        return a + (b - a) * proportion
+    }
+
+    /** Returns an interpoloated color, between `a` and `b`  */
+    private fun interpolateColor(a: Int, b: Int, proportion: Float): Int {
+        val hsva = FloatArray(3)
+        val hsvb = FloatArray(3)
+        Color.colorToHSV(a, hsva)
+        Color.colorToHSV(b, hsvb)
+        for (i in 0..2) {
+            hsvb[i] = interpolate(hsva[i], hsvb[i], proportion)
+        }
+        return Color.HSVToColor(hsvb)
+    }
 
     override fun onBindGroupViewHolder(holder: MyGroupViewHolder, groupPosition: Int, viewType: Int) {
-        val header_item = mProvider.getGroup(groupPosition)
-        holder.mTextView.text = header_item.text
+        val headerItem = mProvider.getGroup(groupPosition)
+        holder.mProjectName.text = headerItem.text
+        holder.mProjectTasksCount.text = "(${headerItem.groupItemNum})"
+        holder.mContainer.elevation = 2f
+
+        val rnd = Random()
+        val color: Int = Color.argb(255, rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256))
+//        val oriColor = (holder.mContainer.background as ColorDrawable).color
+        val oriColor = Color.argb(255, 255, 255, 255)
+
+        holder.mContainer.setBackgroundColor(ColorUtils.blendARGB(color, oriColor, 0.5f))
+        holder.mTopLineHighlight.setBackgroundColor(color)
 
 //        holder.itemView.setOnClickListener(mItemViewOnClickListener);
 
@@ -742,7 +778,7 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider,
 //                // need to clear drawable state here to get correct appearance of the dragging item.
 //                DrawableUtils.clearState(holder.mContainer.foreground)
 //            } else if (dragState.isDragging) {
-//                bgResId = android.R.drawable.bg_group_item_dragging_state
+//                bgResId = android.R.drawable.bg_group_item_dragging_statec
 //            } else if (swipeState.isActive) {
 //                bgResId = android.R.drawable.bg_group_item_swiping_active_state
 //            } else if (swipeState.isSwiping) {
@@ -753,22 +789,15 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider,
 //                bgResId = android.R.drawable.bg_group_item_normal_state
 //            }
 //            holder.mContainer.setBackgroundResource(bgResId)
-            val animate: Boolean = true
-            if (animate) {
-                holder.mIndicator.setImageResource(
-                        if (expandState.isExpanded)
-                            R.drawable.ic_expand_more_to_expand_less
-                        else
-                            R.drawable.ic_expand_less_to_expand_more
-                );
-                (holder.mIndicator.getDrawable() as Animatable).start();
-            } else {
-                holder.mIndicator.setImageResource(
-                        if (expandState.isExpanded)
-                            R.drawable.ic_expand_less
-                        else
-                            R.drawable.ic_expand_more);
-            }
+
+            // animate indicator
+            holder.mIndicator.setImageResource(
+                    if (expandState.isExpanded)
+                        R.drawable.ic_expand_more_to_expand_less
+                    else
+                        R.drawable.ic_expand_less_to_expand_more
+            );
+            (holder.mIndicator.drawable as Animatable).start();
         }
 
         // set swiping properties
@@ -837,6 +866,7 @@ class SwipeListAdapter(private val mProvider: TaskwDataProvider,
                 SwipeRightResultAction(this, groupPosition, childPosition)
             }
             SwipeableItemConstants.RESULT_SWIPED_LEFT -> SwipeLeftResultAction(this,
+                    groupPosition,
                     childPosition, onPinActions)
             SwipeableItemConstants.RESULT_CANCELED -> if (childPosition != RecyclerView
                             .NO_POSITION && childPosition != RecyclerView
