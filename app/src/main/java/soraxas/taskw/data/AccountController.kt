@@ -527,7 +527,11 @@ class AccountController(private val controller: Controller, private val id: Stri
     }
 
     private fun initTasksFolder(): File? {
-        val folder = File(controller.context().getExternalFilesDir(null), id)
+        val folderPath = controller.context().getExternalFilesDir(null)
+        val folder = File(folderPath, id)
+        folder.mkdir()
+        controller.toastMessage(folderPath.absolutePath, true)
+//        val folder = File(controller.context().getExternalFilesDir(null), id)
         return if (!folder.exists() || !folder.isDirectory) {
             null
         } else folder

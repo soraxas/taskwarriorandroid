@@ -64,7 +64,7 @@ class TextEditor : AppCompatActivity() {
         } catch (e: Exception) {
             logger.e(e, "Error getting file:", intent.data, intent.data.path)
             // Invalid file
-            controller.toastMessage("Invalid file provided", true)
+            controller.toastMessage("Invalid file provided: " + intent.data.path, true)
             finish()
             return
         }
